@@ -26,7 +26,7 @@ class ProductController extends Controller
 {
     $request->validate([
         'name' => 'required|string|max:255',
-        'slug' => 'required|string|max:255|unique:products,slug',
+        // 'slug' => 'required|string|max:255|unique:products,slug',
         'description' => 'nullable|string',
         'image' => 'nullable|image|mimes:jpeg,png,jpg|max:20048',
         'price' => 'required|numeric|min:0',
@@ -46,7 +46,7 @@ class ProductController extends Controller
 
     $product = new Product();
     $product->name = $request->name;
-    $product->slug = $request->slug;
+    $product->slug = Str::slug($request->name, '_') . "_" . rand(1000, 9999) . "_" . Str::random(8);
     $product->description = $request->description;
     $product->image = $imagePath;
     $product->price = $request->price;
@@ -112,9 +112,11 @@ public function edit(string $slug)
     ], 200);
 }
 
- public function update(Request $request, string $id)
+ public function update(Request $request, string $slug)
 {
-    $product = Product::findOrFail($id);
+   $product = Product::with('variants', 'category') // ikutkan relasi
+        ->where('slug', $slug)
+        ->first();
 
     $request->validate([
         'name' => 'required|string|max:255',
@@ -145,7 +147,7 @@ public function edit(string $slug)
 
     // Update product details
     $product->name = $request->name;
-    $product->slug = $request->slug ?? Str::slug($request->name);
+    $product->slug = Str::slug($request->name, '_') . "_" . rand(1000, 9999) . "_" . Str::random(8);
     $product->description = $request->description;
     $product->price = $request->price;
     $product->discount = $request->discount ?? 0;
@@ -200,6 +202,28 @@ public function edit(string $slug)
     ], 200);
 }
 
+public function destroy(string $slug)
+{
+    $product = Product::where('slug', $slug)->first();
+
+    if (!$product) {
+        return response()->json([
+            'message' => 'Product not found'
+        ], 404);
+    }
+
+    if ($product->image && Storage::disk('public')->exists($product->image)) {
+        Storage::disk('public')->delete($product->image);
+    }
+
+    $product->variants()->delete();
+
+    $product->delete();
+
+    return response()->json([
+        'message' => 'Product deleted successfully'
+    ], 200);
+}
 
 
 }
