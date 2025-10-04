@@ -2,9 +2,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FaShoppingCart } from "react-icons/fa";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+
+  const pathname = usePathname();
+
+  // Jangan tampilkan header di halaman login dan register
+  if (pathname === "/login" || pathname === "/register") {
+    return null;
+  }
 
   return (
     <div className="fixed top-0 left-0 w-full z-50 bg-white border-b border-gray-300">
@@ -23,13 +31,13 @@ export default function Header() {
         </div>
         {/* Desktop Menu */}
         <nav className="hidden md:flex space-x-7 md:items-center">
-          <Link href="#" className="text-gray-700 hover:text-[#E67E22]">
+          <Link href="/" className={`${pathname == "/" ? "text-[#E67E22]" : "text-gray-700"} hover:text-[#E67E22] `}>
             Home
           </Link>
-          <Link href="#" className="text-gray-700 hover:text-[#E67E22]">
+          <Link href="/menu" className={`${pathname == "/menu" ? "text-[#E67E22]" : "text-gray-700"} hover:text-[#E67E22] `}>
             Menu
           </Link>
-          <Link href="#" className="text-gray-700 hover:text-[#E67E22]">
+          <Link href="/blog" className={`${pathname == "/blog" ? "text-[#E67E22]" : "text-gray-700"} hover:text-[#E67E22] `}>
             Blog
           </Link>
 

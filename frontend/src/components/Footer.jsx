@@ -1,7 +1,17 @@
+'use client';
 import { FaInstagram, FaFacebook, FaWhatsapp } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
 import { MdEmail } from "react-icons/md";
+import { usePathname } from "next/navigation";
+
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Jangan tampilkan footer di halaman login dan register
+  if (pathname === "/login" || pathname === "/register") {
+    return null;
+  }
+
   return (
     <footer className="bg-[#3B2C20] text-white py-10 px-6 md:px-20">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
