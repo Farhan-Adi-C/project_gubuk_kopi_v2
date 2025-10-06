@@ -37,7 +37,7 @@ export default function Header() {
           <Link href="/menu" className={`${pathname == "/menu" ? "text-[#E67E22]" : "text-gray-700"} hover:text-[#E67E22] `}>
             Menu
           </Link>
-          <Link href="/blog" className={`${pathname == "/blog" ? "text-[#E67E22]" : "text-gray-700"} hover:text-[#E67E22] `}>
+          <Link href="/blog" className={`${ pathname.startsWith("/blog") ? "text-[#E67E22]" : "text-gray-700"} hover:text-[#E67E22] `}>
             Blog
           </Link>
 
