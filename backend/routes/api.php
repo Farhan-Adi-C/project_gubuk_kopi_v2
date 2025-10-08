@@ -6,14 +6,14 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/products', [ProductController::class, 'index'])->middleware('auth:sanctum');
-Route::post('/products/create', [ProductController::class, 'store'])->middleware('auth:sanctum');
-Route::get('/products/{slug}', [ProductController::class, 'show'])->middleware('auth:sanctum');
-Route::get('/products/edit/{slug}', [ProductController::class, 'edit'])->middleware('auth:sanctum');
-Route::post('/products/update/{slug}', [ProductController::class, 'update'])->middleware('auth:sanctum');
-Route::delete('/products/delete/{slug}', [ProductController::class, 'destroy'])->middleware('auth:sanctum');
+Route::get('/products', [ProductController::class, 'index']);
+Route::post('/products/create', [ProductController::class, 'store']);
+Route::get('/products/{slug}', [ProductController::class, 'show']);
+Route::get('/products/edit/{slug}', [ProductController::class, 'edit']);
+Route::post('/products/update/{slug}', [ProductController::class, 'update']);
+Route::delete('/products/delete/{slug}', [ProductController::class, 'destroy']);
 
-Route::middleware('auth:sanctum')->prefix('categories')->group(function () {
+Route::prefix('categories')->group(function () {
     Route::get('/', [CategoryController::class, 'index'])->name('api.categories.index');
     Route::post('/', [CategoryController::class, 'store'])->name('api.categories.store');
     Route::get('/{id}', [CategoryController::class, 'show'])->name('api.categories.show');
