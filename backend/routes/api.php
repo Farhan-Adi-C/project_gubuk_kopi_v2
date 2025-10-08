@@ -21,7 +21,7 @@ Route::prefix('categories')->group(function () {
     Route::delete('/{id}', [CategoryController::class, 'destroy'])->name('api.categories.destroy');
 });
 
-Route::middleware('auth:sanctum')->prefix('blogs')->group(function (){
+Route::prefix('blogs')->group(function (){
     Route::get('/', [BlogController::class,'index'])->name('api.blogs.index');
     Route::post('/', [BlogController::class,'store'])->name('api.blogs.store');
     Route::get('/{slug}', [BlogController::class,'show'])->name('api.blogs.show');
