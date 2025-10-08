@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 export default function LoginForm() {
   const router = useRouter();
-
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +19,7 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
+      // 🔹 Kirim ke API Laravel
       const res = await fetch("http://127.0.0.1:8000/api/login", {
         method: "POST",
         headers: {
@@ -36,10 +37,10 @@ export default function LoginForm() {
         );
       }
 
-      // Simpan token
-      localStorage.setItem("token", data.access_token);
+      //  Simpan token ke cookie (berlaku 1 hari)
+      Cookies.set("token", data.access_token, { expires: 1 });
 
-      // Ambil data user
+      //  Ambil data user
       const userRes = await fetch("http://127.0.0.1:8000/api/userislogin", {
         headers: {
           Accept: "application/json",
@@ -51,8 +52,9 @@ export default function LoginForm() {
       if (!userRes.ok)
         throw new Error(userData.message || "Gagal mengambil data user.");
 
-      localStorage.setItem("user", JSON.stringify(userData));
+      Cookies.set("user", JSON.stringify(userData.user), { expires: 1 });
 
+      // 🔹 Arahkan ke halaman sesuai role
       if (userData.user.is_admin == 1) {
         router.push("/admin/dashboard");
       } else {
@@ -64,6 +66,7 @@ export default function LoginForm() {
       setLoading(false);
     }
   };
+
   return (
     <form onSubmit={handleLogin}>
       {/* Email */}

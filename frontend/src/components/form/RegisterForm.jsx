@@ -51,8 +51,9 @@ export default function RegisterForm() {
         throw new Error(data.message || "Pendaftaran gagal, coba lagi!");
       }
 
+      // Simpan token di cookie
       if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
+        Cookies.set("token", data.access_token, { expires: 7 }); 
       }
 
       alert("Registrasi berhasil!");
