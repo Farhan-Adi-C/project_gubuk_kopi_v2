@@ -11,6 +11,7 @@ import {
   IconReport,
   IconFileWord,
   IconInnerShadowTop,
+  IconBook,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -51,9 +52,9 @@ const data = {
       icon: IconTags,
     },
     {
-      title: "Projects",
-      url: "/admin/projects",
-      icon: IconFolder,
+      title: "Blogs",
+      url: "/admin/blogs",
+      icon: IconBook,
     },
     {
       title: "Team",
