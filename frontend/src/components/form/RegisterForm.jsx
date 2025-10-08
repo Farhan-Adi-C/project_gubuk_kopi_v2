@@ -56,7 +56,7 @@ export default function RegisterForm() {
       }
 
       alert("Registrasi berhasil!");
-      router.push("/dashboard");
+      router.push("/");
     } catch (err) {
       setError(err.message);
     } finally {

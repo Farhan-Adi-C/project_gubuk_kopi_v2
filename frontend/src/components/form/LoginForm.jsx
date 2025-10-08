@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
-    
   const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -23,13 +22,10 @@ export default function LoginForm() {
       const res = await fetch("http://127.0.0.1:8000/api/login", {
         method: "POST",
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -40,11 +36,28 @@ export default function LoginForm() {
         );
       }
 
-     
+      // Simpan token
       localStorage.setItem("token", data.access_token);
 
-      
-      router.push("/dashboard");
+      // Ambil data user
+      const userRes = await fetch("http://127.0.0.1:8000/api/userislogin", {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${data.access_token}`,
+        },
+      });
+
+      const userData = await userRes.json();
+      if (!userRes.ok)
+        throw new Error(userData.message || "Gagal mengambil data user.");
+
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      if (userData.user.is_admin == 1) {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError(err.message);
     } finally {
