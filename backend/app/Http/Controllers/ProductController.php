@@ -15,7 +15,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::all();
+        $products = Product::with(['category', 'variants'])->get();
         return view('dashboard.products.index', compact('products'));
     }
 
@@ -84,7 +84,7 @@ class ProductController extends Controller
      */
     public function show(string $slug)
     {
-        [$product] = Product::where('slug', $slug)->get();
+        $product = Product::where('slug', $slug)->with('category', 'variants')->get();
         $categories = Category::all();
 
 
