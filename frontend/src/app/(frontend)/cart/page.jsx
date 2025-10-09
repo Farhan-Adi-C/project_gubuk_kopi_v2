@@ -12,12 +12,11 @@ const bitter = Bitter({
   variable: "--font-bitter", // optional, kalau mau pakai CSS variable
 });
 
-
 export default function Cart() {
   const [cart, setCart] = useState([
-    { id: 1, name: "Kopi Tubruk", price: 10000, qty: 1, image: "/menu.jpg" },
-    { id: 2, name: "Kopi Coklat", price: 10000, qty: 1, image: "/menu.jpg" },
-    { id: 3, name: "Kopi Rempah", price: 10000, qty: 1, image: "/menu.jpg" },
+    { id: 1, name: "Kopi Tubruk", price: 10000, qty: 1,  variant: { name: "Dingin", additional_price: 3000 }, image: "/menu.jpg" },
+    { id: 2, name: "Kopi Coklat", price: 10000, qty: 1,  variant: { name: "Dingin", additional_price: 3000 }, image: "/menu.jpg" },
+    { id: 3, name: "Kopi Rempah", price: 10000, qty: 1,  variant: { name: "Dingin", additional_price: 3000 }, image: "/menu.jpg" },
   ]);
 
   const incrementQty = (id) => {
@@ -53,7 +52,8 @@ export default function Cart() {
     <div className="max-w-full bg-[#F7F3F0] min-h-screen">
       {/* Header */}
       <div className="text-center bg-white pt-28 lg:pt-32 pb-8 border-b-4 border-gray-300 px-5">
-        <h2 className={` ${bitter.className} text-2xl md:text-3xl font-bold text-[#E67E22] mb-2`}>
+        <h2
+          className={` ${bitter.className} text-2xl md:text-3xl font-bold text-[#E67E22] mb-2`}>
           Keranjang Belanja
         </h2>
         <p className="text-gray-600">
@@ -90,11 +90,35 @@ export default function Cart() {
                     />
                   </div>
 
-                  {/* Name & Price */}
+                  {/* Name, Variant & Price */}
                   <div className="flex-1">
-                    <h3 className="font-semibold">{item.name}</h3>
+                    <h3 className="font-semibold text-gray-900">{item.name}</h3>
+
+                    {/* tampilkan varian kalau ada */}
+                    {item.variant && (
+                      <p className="text-sm text-gray-500">
+                        Varian:{" "}
+                        <span className="font-medium text-gray-800">
+                          {item.variant.name}
+                        </span>
+                        {item.variant.additional_price > 0 && (
+                          <span className="text-gray-500">
+                            {" "}
+                            (+Rp{" "}
+                            {item.variant.additional_price.toLocaleString(
+                              "id-ID"
+                            )}
+                            )
+                          </span>
+                        )}
+                      </p>
+                    )}
+
                     <p className="text-[#E67E22] font-medium">
-                      Rp {item.price.toLocaleString()}
+                      Rp{" "}
+                      {(
+                        item.price + (item.variant?.additional_price || 0)
+                      ).toLocaleString("id-ID")}
                     </p>
                   </div>
 
@@ -163,13 +187,15 @@ export default function Cart() {
                   Kembali Belanja
                 </Link>
                 <div className="flex flex-col mt-4 bg-[#FFF4E5] text-[#E67E22] rounded-lg p-4 gap-1 text-sm">
-                    <div className="flex items-center mb-1">
-                        <FaTruck className="inline mr-2 text-lg" />
-                        <p className="text-black font-semibold">Gratis ongkir </p>
-                    </div>
-                    <div>
-                        <p className="text-[#8B4513]">Dengan Minimal Pembelian Rp 100.000 dan maksimal 5KM</p>
-                    </div>
+                  <div className="flex items-center mb-1">
+                    <FaTruck className="inline mr-2 text-lg" />
+                    <p className="text-black font-semibold">Gratis ongkir </p>
+                  </div>
+                  <div>
+                    <p className="text-[#8B4513]">
+                      Dengan Minimal Pembelian Rp 100.000 dan maksimal 5KM
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
