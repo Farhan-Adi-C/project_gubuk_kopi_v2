@@ -15,4 +15,16 @@ class Product extends Model
     public function variants(){
         return $this->hasMany(ProductVariant::class);
     }
+
+    public function carts()
+{
+    return $this->hasMany(Cart::class);
+}
+
+public function orderItems()
+{
+    return $this->hasMany(OrderItem::class);
+}
+
+
 }

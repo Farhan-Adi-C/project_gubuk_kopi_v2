@@ -1,10 +1,12 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
-use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\CategoryController;
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::post('/products/create', [ProductController::class, 'store']);
@@ -29,6 +31,16 @@ Route::prefix('blogs')->group(function (){
     Route::delete('/{slug}', [BlogController::class,'destroy'])->name('api.blogs.destroy');
 
 });
+
+  Route::middleware('auth:sanctum')->prefix('cart')->group(function () {
+        Route::post('/add', [CartController::class, 'addToCart']);
+        Route::get('/', [CartController::class, 'getCart']);
+        Route::put('/update/{cartId}', [CartController::class, 'updateCartQuantity']);
+        Route::delete('/remove/{cartId}', [CartController::class, 'removeFromCart']);
+    });
+
+    Route::post('/checkout', [OrderController::class, 'checkout'])->middleware('auth:sanctum');
+    Route::get('/orders/history', [OrderController::class, 'getOrderHistory'])->middleware('auth:sanctum');
 
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
