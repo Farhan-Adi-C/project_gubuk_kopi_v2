@@ -73,7 +73,6 @@ export function BlogDataTable({ data: initialData }) {
 
   const handleDeleteBlog = async (slug) => {
     try {
-      console.log("Menghapus blog dengan slug:", slug);
       const result = await deleteBlog(slug);
 
       if (result.success) {
@@ -88,7 +87,6 @@ export function BlogDataTable({ data: initialData }) {
           setAlertState((prev) => ({ ...prev, show: false }));
         }, 5000);
       } else {
-        console.error("Gagal menghapus blog:", result.error);
         setAlertState({
           show: true,
           message: `Gagal menghapus blog: ${result.error}`,
@@ -99,7 +97,6 @@ export function BlogDataTable({ data: initialData }) {
         }, 5000);
       }
     } catch (error) {
-      console.error("Error saat menghapus blog:", error);
       setAlertState({
         show: true,
         message: `Error: ${error.message}`,
@@ -121,7 +118,6 @@ export function BlogDataTable({ data: initialData }) {
         year: 'numeric'
       });
     } catch (error) {
-      console.error("Error formatting date:", error);
       return '-';
     }
   };

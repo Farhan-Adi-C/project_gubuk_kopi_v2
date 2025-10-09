@@ -5,6 +5,8 @@ import PasswordConfirmationInput from "@/components/PasswordConfirmationInput";
 import PasswordInput from "@/components/PasswordInput";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+
 
 export default function RegisterForm() {
   const router = useRouter();
