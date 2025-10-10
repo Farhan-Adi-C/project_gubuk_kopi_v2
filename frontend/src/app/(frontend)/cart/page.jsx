@@ -1,45 +1,258 @@
 "use client";
+import { getAuthToken } from "@/lib/get-token-user";
 import { Bitter } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { FaTrash, FaCreditCard, FaTruck } from "react-icons/fa6";
+import { useState, useEffect } from "react";
+import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash } from "react-icons/fa6";
 import { TbShoppingCartX } from "react-icons/tb";
 
 const bitter = Bitter({
   subsets: ["latin"],
-  weight: ["400", "500", "700"], // sesuaikan kebutuhan
-  variable: "--font-bitter", // optional, kalau mau pakai CSS variable
+  weight: ["400", "500", "700"],
+  variable: "--font-bitter",
 });
 
+// API function untuk get cart
+async function getCart() {
+  try {
+    const token = await getAuthToken();
+    console.log("Token:", token);
+
+    if (!token) {
+      throw new Error("User belum login. Token tidak ditemukan.");
+    }
+
+    const res = await fetch("http://localhost:8000/api/cart", {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    console.log("Response status:", res.status);
+
+    const data = await res.json();
+    console.log("Response data:", data);
+
+    if (!res.ok) {
+      throw new Error(data.message || `Gagal mengambil cart (${res.status})`);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Get cart error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// API function untuk update quantity
+async function updateCartQuantity(cartId, quantity) {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("User belum login. Token tidak ditemukan.");
+    }
+
+    const res = await fetch(`http://localhost:8000/api/cart/update/${cartId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ quantity }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || `Gagal update quantity (${res.status})`);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Update quantity error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// API function untuk delete item cart
+async function removeFromCart(cartId) {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("User belum login. Token tidak ditemukan.");
+    }
+
+    const res = await fetch(`http://localhost:8000/api/cart/remove/${cartId}`, {
+      method: "DELETE",
+      headers: {
+        "Accept": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || `Gagal menghapus item (${res.status})`);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Remove cart error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 export default function Cart() {
-  const [cart, setCart] = useState([
-    { id: 1, name: "Kopi Tubruk", price: 10000, qty: 1,  variant: { name: "Dingin", additional_price: 3000 }, image: "/menu.jpg" },
-    { id: 2, name: "Kopi Coklat", price: 10000, qty: 1,  variant: { name: "Dingin", additional_price: 3000 }, image: "/menu.jpg" },
-    { id: 3, name: "Kopi Rempah", price: 10000, qty: 1,  variant: { name: "Dingin", additional_price: 3000 }, image: "/menu.jpg" },
-  ]);
+  const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [updatingItems, setUpdatingItems] = useState(new Set());
+  const [deletingItems, setDeletingItems] = useState(new Set());
 
-  const incrementQty = (id) => {
-    setCart(
-      cart.map((item) =>
-        item.id === id ? { ...item, qty: item.qty + 1 } : item
-      )
-    );
+  // Fetch cart data from API
+  useEffect(() => {
+    fetchCartData();
+  }, []);
+
+  const fetchCartData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log("Fetching cart data...");
+      
+      const result = await getCart();
+      console.log("API Result:", result);
+      
+      if (result.success) {
+        const cartItems = result.data?.data?.items || [];
+        console.log("Cart items:", cartItems);
+        setCart(cartItems);
+      } else {
+        setError(result.error || "Gagal memuat keranjang");
+      }
+    } catch (err) {
+      setError("Gagal memuat data keranjang");
+      console.error("Error fetching cart:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const decrementQty = (id) => {
-    setCart(
-      cart.map((item) =>
-        item.id === id && item.qty > 1 ? { ...item, qty: item.qty - 1 } : item
-      )
-    );
+  // Handle quantity increase
+  const handleIncreaseQuantity = async (cartId, currentQuantity) => {
+    const newQuantity = currentQuantity + 1;
+    await updateQuantity(cartId, newQuantity);
   };
 
-  const removeItem = (id) => {
-    setCart(cart.filter((item) => item.id !== id));
+  // Handle quantity decrease
+  const handleDecreaseQuantity = async (cartId, currentQuantity) => {
+    if (currentQuantity <= 1) return;
+    const newQuantity = currentQuantity - 1;
+    await updateQuantity(cartId, newQuantity);
   };
 
-  const subtotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+  // Update quantity function
+  const updateQuantity = async (cartId, newQuantity) => {
+    try {
+      setUpdatingItems(prev => new Set(prev).add(cartId));
+      
+      const result = await updateCartQuantity(cartId, newQuantity);
+      
+      if (result.success) {
+        setCart(prevCart => 
+          prevCart.map(item => 
+            item.id === cartId 
+              ? { 
+                  ...item, 
+                  quantity: newQuantity, 
+                  total_price_per_item: result.data.data.total_price_per_item 
+                }
+              : item
+          )
+        );
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      alert(`Gagal update quantity: ${error.message}`);
+      fetchCartData();
+    } finally {
+      setUpdatingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(cartId);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle delete item
+  const handleDeleteItem = async (cartId) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus item ini dari keranjang?")) {
+      return;
+    }
+
+    try {
+      setDeletingItems(prev => new Set(prev).add(cartId));
+      
+      const result = await removeFromCart(cartId);
+      
+      if (result.success) {
+        setCart(prevCart => prevCart.filter(item => item.id !== cartId));
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      alert(`Gagal menghapus item: ${error.message}`);
+    } finally {
+      setDeletingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(cartId);
+        return newSet;
+      });
+    }
+  };
+
+  // Format price untuk display
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  // Calculate price per item setelah diskon dan variant
+  const calculatePricePerItem = (item) => {
+    if (!item.product) return 0;
+    
+    // Hitung harga setelah diskon
+    const discountAmount = item.product.price * (item.product.discount / 100);
+    const priceAfterDiscount = item.product.price - discountAmount;
+    
+    // Tambah harga variant
+    const variantPrice = item.variant?.additional_price || 0;
+    const finalPricePerItem = priceAfterDiscount + variantPrice;
+    
+    return finalPricePerItem;
+  };
+
+  // Hitung subtotal berdasarkan quantity dan harga per item
+  const subtotal = cart.reduce((acc, item) => {
+    const pricePerItem = calculatePricePerItem(item);
+    return acc + (pricePerItem * item.quantity);
+  }, 0);
+
+  // Hitung shipping
   let shipping = 10000;
   let total = subtotal + shipping;
 
@@ -48,12 +261,63 @@ export default function Cart() {
     total = subtotal;
   }
 
+  // Total items in cart (sum of all quantities)
+  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="max-w-full bg-[#F7F3F0] min-h-screen">
+        <div className="text-center bg-white pt-28 lg:pt-32 pb-8 border-b-4 border-gray-300 px-5">
+          <h2 className={`${bitter.className} text-2xl md:text-3xl font-bold text-[#E67E22] mb-2`}>
+            Keranjang Belanja
+          </h2>
+        </div>
+        <div className="max-w-4xl lg:max-w-full lg:px-20 mx-auto p-5 flex justify-center items-center min-h-60">
+          <div className="flex items-center gap-2 text-gray-500">
+            <FaSpinner className="animate-spin" />
+            <p>Memuat keranjang...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="max-w-full bg-[#F7F3F0] min-h-screen">
+        <div className="text-center bg-white pt-28 lg:pt-32 pb-8 border-b-4 border-gray-300 px-5">
+          <h2 className={`${bitter.className} text-2xl md:text-3xl font-bold text-[#E67E22] mb-2`}>
+            Keranjang Belanja
+          </h2>
+        </div>
+        <div className="max-w-4xl lg:max-w-full lg:px-20 mx-auto p-5 flex flex-col items-center justify-center min-h-60 gap-4">
+          <p className="text-red-500 text-center">{error}</p>
+          <div className="flex gap-2">
+            <button 
+              onClick={fetchCartData}
+              className="bg-[#E67E22] text-white px-4 py-2 rounded-lg hover:bg-[#cf6d13] transition"
+            >
+              Coba Lagi
+            </button>
+            <Link
+              href="/menu"
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition"
+            >
+              Kembali Belanja
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-full bg-[#F7F3F0] min-h-screen">
       {/* Header */}
       <div className="text-center bg-white pt-28 lg:pt-32 pb-8 border-b-4 border-gray-300 px-5">
-        <h2
-          className={` ${bitter.className} text-2xl md:text-3xl font-bold text-[#E67E22] mb-2`}>
+        <h2 className={`${bitter.className} text-2xl md:text-3xl font-bold text-[#E67E22] mb-2`}>
           Keranjang Belanja
         </h2>
         <p className="text-gray-600">
@@ -70,81 +334,129 @@ export default function Cart() {
               Keranjang belanja Anda kosong. <br />
               Tambahkan item untuk melanjutkan.
             </p>
+            <Link
+              href="/menu"
+              className="mt-4 bg-[#E67E22] text-white px-6 py-3 rounded-lg hover:bg-[#cf6d13] transition"
+            >
+              Belanja Sekarang
+            </Link>
           </div>
         ) : (
           <>
             {/* Cart Items */}
             <div className="space-y-4 lg:w-1/2">
-              {cart.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between bg-[#fdfdfd] rounded-lg shadow-lg p-3 gap-3">
-                  {/* Image */}
-                  <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      width={80}
-                      height={80}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
+              {cart.map((item) => {
+                const isUpdating = updatingItems.has(item.id);
+                const isDeleting = deletingItems.has(item.id);
+                const pricePerItem = calculatePricePerItem(item);
+                const totalPricePerItem = pricePerItem * item.quantity;
 
-                  {/* Name, Variant & Price */}
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between bg-[#fdfdfd] rounded-lg shadow-lg p-3 gap-3"
+                  >
+                    {/* Image */}
+                    <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                      <Image
+                        src={item.product?.image ? `http://localhost:8000/storage/${item.product.image}` : "/menu.jpg"}
+                        alt={item.product?.name || "Product Image"}
+                        width={80}
+                        height={80}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
 
-                    {/* tampilkan varian kalau ada */}
-                    {item.variant && (
-                      <p className="text-sm text-gray-500">
-                        Varian:{" "}
-                        <span className="font-medium text-gray-800">
-                          {item.variant.name}
-                        </span>
-                        {item.variant.additional_price > 0 && (
-                          <span className="text-gray-500">
-                            {" "}
-                            (+Rp{" "}
-                            {item.variant.additional_price.toLocaleString(
-                              "id-ID"
-                            )}
-                            )
+                    {/* Product Info */}
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">
+                        {item.product?.name}
+                      </h3>
+
+                      {/* Harga asli dan diskon */}
+                      {item.product?.discount > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-gray-500 line-through">
+                            {formatPrice(item.product?.price)}
                           </span>
-                        )}
+                          <span className="text-red-500 font-medium">
+                            {item.product?.discount}% OFF
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Tampilkan variant kalau ada */}
+                      {item.variant && (
+                        <p className="text-sm text-gray-500">
+                          Varian:{" "}
+                          <span className="font-medium text-gray-800">
+                            {item.variant.name}
+                          </span>
+                          {item.variant.additional_price > 0 && (
+                            <span className="text-gray-500">
+                              {" "}
+                              (+{formatPrice(item.variant.additional_price)})
+                            </span>
+                          )}
+                        </p>
+                      )}
+
+                      {/* Harga per item */}
+                      <p className="text-[#E67E22] font-medium">
+                        {formatPrice(pricePerItem)}
                       </p>
-                    )}
 
-                    <p className="text-[#E67E22] font-medium">
-                      Rp{" "}
-                      {(
-                        item.price + (item.variant?.additional_price || 0)
-                      ).toLocaleString("id-ID")}
-                    </p>
+                      {/* Total per item */}
+                      <p className="text-gray-900 font-semibold">
+                        Total: {formatPrice(totalPricePerItem)}
+                      </p>
+                    </div>
+
+                    {/* Quantity Controls */}
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex items-center gap-2 border rounded-md px-2 py-1 bg-gray-50">
+                        <button
+                          onClick={() => handleDecreaseQuantity(item.id, item.quantity)}
+                          disabled={isUpdating || item.quantity <= 1}
+                          className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          −
+                        </button>
+                        
+                        <span className="font-medium min-w-8 text-center">
+                          {isUpdating ? (
+                            <FaSpinner className="animate-spin mx-auto" size={14} />
+                          ) : (
+                            item.quantity
+                          )}
+                        </span>
+                        
+                        <button
+                          onClick={() => handleIncreaseQuantity(item.id, item.quantity)}
+                          disabled={isUpdating}
+                          className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleDeleteItem(item.id)}
+                        disabled={isDeleting}
+                        className="text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1 text-sm"
+                      >
+                        {isDeleting ? (
+                          <FaSpinner className="animate-spin" size={12} />
+                        ) : (
+                          <FaTrash size={12} />
+                        )}
+                        Hapus
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Qty Controls */}
-                  <div className="flex items-center gap-2 border rounded-md px-2 py-1">
-                    <button
-                      onClick={() => decrementQty(item.id)}
-                      className="px-2 py-1 rounded hover:bg-gray-200 transition">
-                      −
-                    </button>
-                    <span>{item.qty}</span>
-                    <button
-                      onClick={() => incrementQty(item.id)}
-                      className="px-2 py-1 rounded hover:bg-gray-200 transition">
-                      +
-                    </button>
-                  </div>
-
-                  {/* Remove */}
-                  <button
-                    onClick={() => removeItem(item.id)}
-                    className="text-red-500 hover:text-red-600 text-lg">
-                    <FaTrash />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Order Summary */}
@@ -157,33 +469,41 @@ export default function Cart() {
                 <textarea
                   placeholder="Jl..."
                   className="w-full border rounded-md p-3 focus:outline-[#E67E22]"
-                  rows={3}></textarea>
+                  rows={3}
+                ></textarea>
               </div>
 
               {/* Summary */}
               <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
-                <h3 className="font-bold mb-4">Order Summary</h3>
+                <h3 className="font-bold mb-4">Ringkasan Pesanan</h3>
                 <div className="flex justify-between mb-2">
-                  <span>Subtotal</span>
-                  <span>Rp {subtotal.toLocaleString()}</span>
+                  <span>Subtotal ({totalItems} items)</span>
+                  <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span>Biaya Ongkir</span>
-                  <span>Rp {shipping.toLocaleString()}</span>
+                  <span>Biaya Pengiriman</span>
+                  <span>
+                    {shipping === 0 ? (
+                      <span className="text-green-600">GRATIS</span>
+                    ) : (
+                      formatPrice(shipping)
+                    )}
+                  </span>
                 </div>
                 <hr className="my-3 text-[#000000]/20" />
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>Rp {total.toLocaleString()}</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
 
-                <button className="w-full mt-5 bg-[#E67E22] text-white py-3 rounded-lg hover:bg-[#cf6d13] transition">
+                <button className="w-full mt-5 bg-[#E67E22] text-white py-3 rounded-lg hover:bg-[#cf6d13] transition flex items-center justify-center">
                   <FaCreditCard className="inline mr-2" />
                   Lanjut ke Pembayaran
                 </button>
                 <Link
                   href="/menu"
-                  className="block w-full mt-3 bg-transparent text-[#E2A22A] hover:text-white border-[#E2A22A] border-2 py-3 rounded-lg hover:bg-[#cf6d13] transition text-center">
+                  className="block w-full mt-3 bg-transparent text-[#E2A22A] hover:text-white border-[#E2A22A] border-2 py-3 rounded-lg hover:bg-[#cf6d13] transition text-center"
+                >
                   Kembali Belanja
                 </Link>
                 <div className="flex flex-col mt-4 bg-[#FFF4E5] text-[#E67E22] rounded-lg p-4 gap-1 text-sm">
