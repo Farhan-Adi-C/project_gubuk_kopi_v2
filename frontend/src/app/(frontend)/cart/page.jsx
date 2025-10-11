@@ -3,7 +3,7 @@ import { getAuthToken } from "@/lib/get-token-user";
 import { Bitter } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash } from "react-icons/fa6";
 import { TbShoppingCartX } from "react-icons/tb";
 
@@ -17,7 +17,6 @@ const bitter = Bitter({
 async function getCart() {
   try {
     const token = await getAuthToken();
-    console.log("Token:", token);
 
     if (!token) {
       throw new Error("User belum login. Token tidak ditemukan.");
@@ -110,15 +109,80 @@ async function removeFromCart(cartId) {
   }
 }
 
+// API function untuk checkout
+async function checkout(shippingAddress) {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("User belum login. Token tidak ditemukan.");
+    }
+
+    const res = await fetch("http://localhost:8000/api/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        shipping_address: shippingAddress
+      }),
+    });
+
+    const data = await res.json();
+    console.log("Checkout response:", data);
+
+    if (!res.ok) {
+      throw new Error(data.message || `Gagal checkout (${res.status})`);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Checkout error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 export default function Cart() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingItems, setUpdatingItems] = useState(new Set());
   const [deletingItems, setDeletingItems] = useState(new Set());
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState("");
+  const snapScriptLoaded = useRef(false);
 
-  // Fetch cart data from API
+
+  // Load Midtrans Snap script
   useEffect(() => {
+    if (!snapScriptLoaded.current) {
+      const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
+      const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+
+      // Check if script already exists
+      if (!document.querySelector(`script[src="${snapScript}"]`)) {
+        const script = document.createElement('script');
+        script.src = snapScript;
+        script.setAttribute('data-client-key', clientKey);
+        script.async = true;
+        
+        script.onload = () => {
+          console.log('Midtrans Snap script loaded successfully');
+          snapScriptLoaded.current = true;
+        };
+        
+        script.onerror = () => {
+          console.error('Failed to load Midtrans Snap script');
+        };
+
+        document.body.appendChild(script);
+      } else {
+        snapScriptLoaded.current = true;
+      }
+    }
+
     fetchCartData();
   }, []);
 
@@ -146,36 +210,56 @@ export default function Cart() {
     }
   };
 
-  // Handle quantity increase
-  const handleIncreaseQuantity = async (cartId, currentQuantity) => {
+  // Fungsi untuk mendapatkan stok yang tersedia
+  const getAvailableStock = (item) => {
+    // Jika ada variant, gunakan stok variant, jika tidak gunakan stok produk
+    return item.variant?.stock !== undefined ? item.variant.stock : item.product?.stock || 0;
+  };
+
+  // Handle quantity increase dengan validasi stok
+  const handleIncreaseQuantity = async (cartId, currentQuantity, item) => {
+    const availableStock = getAvailableStock(item);
+    
+    if (currentQuantity >= availableStock) {
+      alert(`Stok tidak mencukupi. Stok tersedia: ${availableStock}`);
+      return;
+    }
+
     const newQuantity = currentQuantity + 1;
-    await updateQuantity(cartId, newQuantity);
+    await updateQuantity(cartId, newQuantity, item);
   };
 
   // Handle quantity decrease
-  const handleDecreaseQuantity = async (cartId, currentQuantity) => {
+  const handleDecreaseQuantity = async (cartId, currentQuantity, item) => {
     if (currentQuantity <= 1) return;
     const newQuantity = currentQuantity - 1;
-    await updateQuantity(cartId, newQuantity);
+    await updateQuantity(cartId, newQuantity, item);
   };
 
-  // Update quantity function
-  const updateQuantity = async (cartId, newQuantity) => {
+  // Update quantity function dengan pengecekan stok
+  const updateQuantity = async (cartId, newQuantity, item) => {
     try {
       setUpdatingItems(prev => new Set(prev).add(cartId));
       
+      const availableStock = getAvailableStock(item);
+      
+      // Validasi stok sebelum update
+      if (newQuantity > availableStock) {
+        throw new Error(`Stok tidak mencukupi. Stok tersedia: ${availableStock}`);
+      }
+
       const result = await updateCartQuantity(cartId, newQuantity);
       
       if (result.success) {
         setCart(prevCart => 
-          prevCart.map(item => 
-            item.id === cartId 
+          prevCart.map(cartItem => 
+            cartItem.id === cartId 
               ? { 
-                  ...item, 
+                  ...cartItem, 
                   quantity: newQuantity, 
                   total_price_per_item: result.data.data.total_price_per_item 
                 }
-              : item
+              : cartItem
           )
         );
       } else {
@@ -184,7 +268,13 @@ export default function Cart() {
     } catch (error) {
       console.error("Error updating quantity:", error);
       alert(`Gagal update quantity: ${error.message}`);
-      fetchCartData();
+      
+      // Jika stok = 0, hapus item dari cart
+      if (error.message.includes('Stok tidak mencukupi') && getAvailableStock(item) === 0) {
+        await handleAutoRemoveItem(cartId, item);
+      } else {
+        fetchCartData(); // Refresh data cart
+      }
     } finally {
       setUpdatingItems(prev => {
         const newSet = new Set(prev);
@@ -194,9 +284,29 @@ export default function Cart() {
     }
   };
 
+  // Handle auto remove item ketika stok = 0
+  const handleAutoRemoveItem = async (cartId, item) => {
+    try {
+      console.log(`Auto removing item ${cartId} karena stok habis`);
+      
+      const result = await removeFromCart(cartId);
+      
+      if (result.success) {
+        setCart(prevCart => prevCart.filter(cartItem => cartItem.id !== cartId));
+        alert(`Produk ${item.product?.name} dihapus dari keranjang karena stok habis`);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error("Error auto removing item:", error);
+      // Tetap hapus dari state UI meskipun API gagal
+      setCart(prevCart => prevCart.filter(cartItem => cartItem.id !== cartId));
+    }
+  };
+
   // Handle delete item
-  const handleDeleteItem = async (cartId) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus item ini dari keranjang?")) {
+  const handleDeleteItem = async (cartId, itemName = "item ini") => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${itemName} dari keranjang?`)) {
       return;
     }
 
@@ -219,6 +329,100 @@ export default function Cart() {
         newSet.delete(cartId);
         return newSet;
       });
+    }
+  };
+
+  // Check untuk items dengan stok = 0 saat component mount
+  useEffect(() => {
+    if (cart.length > 0) {
+      const checkStockForAllItems = async () => {
+        const outOfStockItems = cart.filter(item => getAvailableStock(item) === 0);
+        
+        for (const item of outOfStockItems) {
+          await handleAutoRemoveItem(item.id, item);
+        }
+      };
+
+      checkStockForAllItems();
+    }
+  }, [cart]);
+
+  // Handle checkout dengan Midtrans Snap
+  const handleCheckout = async () => {
+    if (!shippingAddress.trim()) {
+      alert("Mohon masukkan alamat pengiriman");
+      return;
+    }
+
+    if (cart.length === 0) {
+      alert("Keranjang belanja kosong");
+      return;
+    }
+
+    // Validasi stok semua item sebelum checkout
+    const itemsWithInsufficientStock = cart.filter(item => {
+      const availableStock = getAvailableStock(item);
+      return item.quantity > availableStock;
+    });
+
+    if (itemsWithInsufficientStock.length > 0) {
+      const itemNames = itemsWithInsufficientStock.map(item => 
+        `${item.product?.name} (Stok: ${getAvailableStock(item)})`
+      ).join(', ');
+      
+      alert(`Stok tidak mencukupi untuk produk berikut: ${itemNames}. Silakan update quantity atau hapus item tersebut.`);
+      return;
+    }
+
+    // Pastikan Snap script sudah loaded
+    if (!window.snap) {
+      alert("Sistem pembayaran sedang loading, silakan tunggu sebentar dan coba lagi");
+      return;
+    }
+
+    try {
+      setCheckoutLoading(true);
+      
+      console.log("Memproses checkout...");
+      const result = await checkout(shippingAddress);
+      
+      if (result.success) {
+        const snapToken = result.data.data.snap_token;
+        console.log("Snap Token received:", snapToken);
+        
+        if (!snapToken) {
+          throw new Error("Snap token tidak ditemukan dalam response");
+        }
+
+        // Panggil Midtrans Snap
+        window.snap.pay(snapToken, {
+          onSuccess: function(result) {
+            alert("Pembayaran berhasil! Pesanan Anda sedang diproses.");
+            // Clear cart setelah pembayaran berhasil
+            setCart([]);
+            setShippingAddress("");
+          },
+          onPending: function(result) {
+            console.log("Payment pending:", result);
+            alert("Pembayaran pending. Silakan selesaikan pembayaran Anda.");
+          },
+          onError: function(result) {
+            console.log("Payment error:", result);
+            alert("Terjadi kesalahan saat proses pembayaran. Silakan coba lagi.");
+          },
+          onClose: function() {
+            console.log("Payment popup closed without completing payment");
+            // Tidak perlu alert di sini, biarkan user menutup sendiri
+          }
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      alert(`Gagal checkout: ${error.message}`);
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -350,11 +554,15 @@ export default function Cart() {
                 const isDeleting = deletingItems.has(item.id);
                 const pricePerItem = calculatePricePerItem(item);
                 const totalPricePerItem = pricePerItem * item.quantity;
+                const availableStock = getAvailableStock(item);
+                const isOutOfStock = availableStock === 0;
 
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between bg-[#fdfdfd] rounded-lg shadow-lg p-3 gap-3"
+                    className={`flex items-center justify-between rounded-lg shadow-lg p-3 gap-3 ${
+                      isOutOfStock ? 'bg-red-50 border border-red-200' : 'bg-[#fdfdfd]'
+                    }`}
                   >
                     {/* Image */}
                     <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
@@ -371,6 +579,11 @@ export default function Cart() {
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">
                         {item.product?.name}
+                        {isOutOfStock && (
+                          <span className="ml-2 text-red-500 text-sm font-normal">
+                            (Stok Habis)
+                          </span>
+                        )}
                       </h3>
 
                       {/* Harga asli dan diskon */}
@@ -398,8 +611,11 @@ export default function Cart() {
                               (+{formatPrice(item.variant.additional_price)})
                             </span>
                           )}
+                         
                         </p>
                       )}
+
+                   
 
                       {/* Harga per item */}
                       <p className="text-[#E67E22] font-medium">
@@ -414,35 +630,45 @@ export default function Cart() {
 
                     {/* Quantity Controls */}
                     <div className="flex flex-col items-center gap-3">
-                      <div className="flex items-center gap-2 border rounded-md px-2 py-1 bg-gray-50">
-                        <button
-                          onClick={() => handleDecreaseQuantity(item.id, item.quantity)}
-                          disabled={isUpdating || item.quantity <= 1}
-                          className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                          −
-                        </button>
-                        
-                        <span className="font-medium min-w-8 text-center">
-                          {isUpdating ? (
-                            <FaSpinner className="animate-spin mx-auto" size={14} />
-                          ) : (
-                            item.quantity
-                          )}
-                        </span>
-                        
-                        <button
-                          onClick={() => handleIncreaseQuantity(item.id, item.quantity)}
-                          disabled={isUpdating}
-                          className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                          +
-                        </button>
-                      </div>
+                      {!isOutOfStock ? (
+                        <>
+                          <div className="flex items-center gap-2 border rounded-md px-2 py-1 bg-gray-50">
+                            <button
+                              onClick={() => handleDecreaseQuantity(item.id, item.quantity, item)}
+                              disabled={isUpdating || item.quantity <= 1}
+                              className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                              −
+                            </button>
+                            
+                            <span className="font-medium min-w-8 text-center">
+                              {isUpdating ? (
+                                <FaSpinner className="animate-spin mx-auto" size={14} />
+                              ) : (
+                                item.quantity
+                              )}
+                            </span>
+                            
+                            <button
+                              onClick={() => handleIncreaseQuantity(item.id, item.quantity, item)}
+                              disabled={isUpdating || item.quantity >= availableStock}
+                              className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                         
+                        </>
+                      ) : (
+                        <p className="text-red-500 text-sm font-medium text-center">
+                          Stok Habis
+                        </p>
+                      )}
 
                       {/* Delete Button */}
                       <button
-                        onClick={() => handleDeleteItem(item.id)}
+                        onClick={() => handleDeleteItem(item.id, item.product?.name)}
                         disabled={isDeleting}
                         className="text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1 text-sm"
                       >
@@ -464,13 +690,19 @@ export default function Cart() {
               {/* Address */}
               <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
                 <label className="block mb-2 font-medium">
-                  Alamat Pengiriman
+                  Alamat Pengiriman *
                 </label>
                 <textarea
-                  placeholder="Jl..."
+                  placeholder="Contoh: Jl. Merdeka No. 123, Jakarta Pusat"
                   className="w-full border rounded-md p-3 focus:outline-[#E67E22]"
                   rows={3}
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                  required
                 ></textarea>
+                <p className="text-sm text-gray-500 mt-1">
+                  * Wajib diisi untuk proses pengiriman
+                </p>
               </div>
 
               {/* Summary */}
@@ -496,10 +728,25 @@ export default function Cart() {
                   <span>{formatPrice(total)}</span>
                 </div>
 
-                <button className="w-full mt-5 bg-[#E67E22] text-white py-3 rounded-lg hover:bg-[#cf6d13] transition flex items-center justify-center">
-                  <FaCreditCard className="inline mr-2" />
-                  Lanjut ke Pembayaran
+                {/* Checkout Buttons */}
+                <button 
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading || !shippingAddress.trim() || cart.some(item => getAvailableStock(item) === 0)}
+                  className="w-full mt-5 bg-[#E67E22] text-white py-3 rounded-lg hover:bg-[#cf6d13] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Memproses Pembayaran...
+                    </>
+                  ) : (
+                    <>
+                      <FaCreditCard className="inline mr-2" />
+                      Bayar dengan Midtrans
+                    </>
+                  )}
                 </button>
+
                 <Link
                   href="/menu"
                   className="block w-full mt-3 bg-transparent text-[#E2A22A] hover:text-white border-[#E2A22A] border-2 py-3 rounded-lg hover:bg-[#cf6d13] transition text-center"

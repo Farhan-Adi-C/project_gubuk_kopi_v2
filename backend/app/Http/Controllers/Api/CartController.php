@@ -63,7 +63,7 @@ class CartController extends Controller
                 'user_id' => $user->id,
                 'product_id' => $request->product_id,
                 'variant_id' => $request->variant_id,
-                'quantity' => 1,
+                'quantity' => $request->quantity ?? 1,
                 'status' => 'pending'
             ]);
 
