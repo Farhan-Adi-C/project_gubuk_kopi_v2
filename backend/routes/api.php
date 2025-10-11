@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/products', [ProductController::class, 'index'])->middleware('auth:sanctum');
@@ -34,3 +35,4 @@ Route::middleware('auth:sanctum')->prefix('blogs')->group(function (){
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth:sanctum');
+Route::post('/user/update/{id}',[UserController::class,'update'])->name('update-user')->middleware('auth:sanctum');
