@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->string('order_id')->unique();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->bigInteger('total_amount')->default(0);
-            $table->enum('payment_status', ['pending', 'success', 'failed'])->default('pending');
+          $table->enum('payment_status', ['pending', 'paid', 'failed', 'expired'])->default('pending');
             $table->string('payment_method')->nullable();
-            $table->string('midtrans_order_id')->nullable();
+            $table->string('snap_token')->nullable();
             $table->longText('shipping_address')->nullable();
             $table->timestamps();
         });

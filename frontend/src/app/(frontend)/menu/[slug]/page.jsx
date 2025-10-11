@@ -1,30 +1,32 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { FiClock, FiCoffee, FiShoppingCart } from 'react-icons/fi';
+import { FiClock, FiPackage, FiShoppingCart } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/lib/get-token-user';
 
 export default function MenuDetail({ params }) {
   const [menuData, setMenuData] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(false);
   const { slug } = React.use(params);
+  const router = useRouter();
 
   console.log("selectedVariant", selectedVariant);
 
-  // Ganti URL API sesuai backend kamu
   const API_URL = `http://127.0.0.1:8000/api/products/${slug}`;
+  const CART_API_URL = 'http://localhost:8000/api/cart/add';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await fetch(API_URL);
+        if (!res.ok) throw new Error('Failed to fetch product');
         const json = await res.json();
         const data = json.data;
 
         setMenuData(data);
-        // if (data.variants && data.variants.length > 0) {
-        //   setSelectedVariant(data.variants[0]);
-        // }
       } catch (error) {
         console.error('Error fetching product:', error);
       } finally {
@@ -34,6 +36,70 @@ export default function MenuDetail({ params }) {
 
     fetchData();
   }, [API_URL]);
+
+  const addToCart = async () => {
+    setAddingToCart(true);
+    
+    try {
+      const token = await getAuthToken();
+      
+      if (!token) {
+        alert('Silakan login terlebih dahulu!');
+        router.push('/login');
+        return;
+      }
+
+      // Validasi tambahan
+      if (!menuData?.id) {
+        alert('Data produk tidak valid');
+        return;
+      }
+
+      // Validasi stok
+      const availableStock = selectedVariant?.stock || menuData.stock;
+      if (quantity > availableStock) {
+        alert(`Stok tidak mencukupi. Stok tersedia: ${availableStock}`);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('product_id', menuData.id.toString());
+      formData.append('quantity', quantity.toString());
+      
+      if (selectedVariant?.id) {
+        formData.append('variant_id', selectedVariant.id.toString());
+      }
+
+      const response = await fetch(CART_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        console.log('Added to cart:', result);
+        
+        const variantName = selectedVariant ? ` (${selectedVariant.name})` : '';
+        alert(`${quantity} ${menuData.name}${variantName} berhasil ditambahkan ke keranjang!`);
+        
+        // Redirect ke menu (sesuai kode Anda)
+        router.push('/menu');
+      } else {
+        console.error('Error adding to cart:', result);
+        alert(result.message || 'Gagal menambahkan ke keranjang. Silakan coba lagi.');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Terjadi kesalahan jaringan. Silakan coba lagi.');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -52,23 +118,25 @@ export default function MenuDetail({ params }) {
   }
 
   const basePrice = menuData.price * quantity;
-  const discountedPrice =
-    menuData.discount > 0
-      ? basePrice * (1 - menuData.discount / 100)
-      : basePrice;
-  const finalPrice =
-  discountedPrice + ((selectedVariant?.additional_price || 0) * quantity);
+  const discountedPrice = menuData.discount > 0
+    ? basePrice * (1 - menuData.discount / 100)
+    : basePrice;
+  const finalPrice = discountedPrice + ((selectedVariant?.additional_price || 0) * quantity);
 
-  const addToCart = () => {
-    const cartItem = {
-      menu: menuData,
-      variant: selectedVariant,
-      quantity,
-      totalPrice: finalPrice,
-    };
-    console.log('Added to cart:', cartItem);
-    alert(`${menuData.name} (${selectedVariant?.name}) berhasil ditambahkan ke keranjang!`);
+  // Mendapatkan stok yang tersedia
+  const getAvailableStock = () => {
+    return selectedVariant?.stock || menuData.stock;
   };
+
+  // Mendapatkan status stok
+  const getStockStatus = () => {
+    const stock = getAvailableStock();
+    if (stock === 0) return { text: 'Stok Habis', color: 'text-red-500' };
+    if (stock <= 5) return { text: `Stok Tersisa: ${stock}`, color: 'text-orange-500' };
+    return { text: `Stok: ${stock}`, color: 'text-green-500' };
+  };
+
+  const stockStatus = getStockStatus();
 
   return (
     <div className="min-h-screen py-36 px-4 sm:px-6 lg:px-8 bg-gray-50">
@@ -121,16 +189,24 @@ export default function MenuDetail({ params }) {
                     <button
                       key={v.id}
                       onClick={() => setSelectedVariant(selectedVariant?.id === v.id ? null : v)}
-                      className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                      className={`flex flex-col items-start gap-1 px-4 py-3 rounded-xl border transition-all ${
                         selectedVariant?.id === v.id
                           ? 'bg-amber-50 border-amber-500 text-amber-700'
                           : 'border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50'
-                      }`}
+                      } ${v.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={addingToCart || v.stock === 0}
                     >
-                      <span>{v.name}</span>
-                      {v.additional_price > 0 && (
-                        <span className="text-sm text-gray-400">
-                          + Rp {v.additional_price.toLocaleString('id-ID')}
+                      <div className="flex items-center gap-2">
+                        <span>{v.name}</span>
+                        {v.additional_price > 0 && (
+                          <span className="text-sm text-gray-400">
+                            + Rp {v.additional_price.toLocaleString('id-ID')}
+                          </span>
+                        )}
+                      </div>
+                      {v.stock !== undefined && (
+                        <span className={`text-xs ${v.stock === 0 ? 'text-red-500' : v.stock <= 5 ? 'text-orange-500' : 'text-green-500'}`}>
+                          Stok: {v.stock}
                         </span>
                       )}
                     </button>
@@ -145,30 +221,50 @@ export default function MenuDetail({ params }) {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
+                  className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition disabled:opacity-50"
+                  disabled={addingToCart || quantity <= 1 || getAvailableStock() === 0}
                 >
                   -
                 </button>
                 <span className="w-8 text-center font-semibold">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
+                  className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition disabled:opacity-50"
+                  disabled={addingToCart || quantity >= getAvailableStock()}
                 >
                   +
                 </button>
               </div>
+              <span className={`text-sm font-medium ${stockStatus.color}`}>
+                {stockStatus.text}
+              </span>
             </div>
           </div>
 
           {/* Add to Cart */}
           <button
             onClick={addToCart}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-2"
+            disabled={addingToCart || getAvailableStock() === 0}
+            className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 disabled:bg-gray-400 text-white py-3 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed"
           >
-            <FiShoppingCart />
-            <span>
-              Tambah ke Keranjang - Rp {finalPrice.toLocaleString('id-ID')}
-            </span>
+            {addingToCart ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Menambahkan...</span>
+              </>
+            ) : getAvailableStock() === 0 ? (
+              <>
+                <FiPackage />
+                <span>Stok Habis</span>
+              </>
+            ) : (
+              <>
+                <FiShoppingCart />
+                <span>
+                  Tambah ke Keranjang - Rp {finalPrice.toLocaleString('id-ID')}
+                </span>
+              </>
+            )}
           </button>
 
           {/* Info Tambahan */}
@@ -176,9 +272,7 @@ export default function MenuDetail({ params }) {
             <div className="flex items-center gap-2">
               <FiClock /> Prep: 5-7 menit
             </div>
-            <div className="flex items-center gap-2">
-              <FiCoffee /> Caffeine: Medium
-            </div>
+           
           </div>
         </div>
       </div>
