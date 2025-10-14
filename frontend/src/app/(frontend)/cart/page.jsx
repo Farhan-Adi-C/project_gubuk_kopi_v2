@@ -742,7 +742,7 @@ export default function Cart() {
                   ) : (
                     <>
                       <FaCreditCard className="inline mr-2" />
-                      Bayar dengan Midtrans
+                      Lanjut Ke Pembayaran
                     </>
                   )}
                 </button>

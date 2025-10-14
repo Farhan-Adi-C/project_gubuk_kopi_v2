@@ -47,6 +47,11 @@ export default function Header() {
 
   useEffect(() => setOpen(false), [pathname]);
 
+  // get total item in cart
+  useEffect(() => {
+
+  })
+
   const handleLogout = async () => {
     try {
       const token = await getAuthToken();
