@@ -12,6 +12,8 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const [initial, setInitial] = useState("G");
+
   useEffect(() => {
     let mounted = true;
     const fetchUser = async () => {
@@ -29,7 +31,10 @@ export default function Header() {
         });
         const data = await res.json();
         const u = data?.data ?? data?.user ?? null;
-        if (mounted) setUser(u);
+        if (mounted) {
+          setUser(u);
+          setInitial(u.name.charAt(0).toUpperCase());
+        }
       } catch (e) {
         if (mounted) setUser(null);
       }
@@ -135,15 +140,17 @@ export default function Header() {
             {user ? (
               <div className="relative group">
                 <button className="flex items-center gap-2">
-                  <img
-                    src={
-                      user.avatar
-                        ? `http://127.0.0.1:8000/storage/${user.avatar}`
-                        : "/default-avatar.png"
-                    }
-                    alt="Avatar"
-                    className="w-12 h-12 rounded-full border border-gray-300"
-                  />
+                  {user?.avatar ? (
+                    <img
+                      src={`http://127.0.0.1:8000/storage/${user.avatar}`}
+                      alt="Avatar"
+                      className="w-12 h-12 rounded-full border border-gray-300 object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-orange-400 text-gray-50 flex items-center justify-center border font-semibold text-lg">
+                      {initial}
+                    </div>
+                  )}
                 </button>
                 <div className="absolute right-0  w-40 bg-white border rounded-lg shadow-md opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-opacity">
                   <Link
