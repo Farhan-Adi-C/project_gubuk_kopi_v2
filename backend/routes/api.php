@@ -42,6 +42,7 @@ Route::prefix('blogs')->group(function (){
 
     Route::post('/checkout', [OrderController::class, 'checkout'])->middleware('auth:sanctum');
     Route::get('/orders/history', [OrderController::class, 'getOrderHistory'])->middleware('auth:sanctum');
+    Route::get('/orders/allhistory', [OrderController::class, 'getAllOrderHistory'])->middleware('auth:sanctum');
     Route::post('/webhook/midtrans', [OrderController::class, 'handleWebhook']);
 
 

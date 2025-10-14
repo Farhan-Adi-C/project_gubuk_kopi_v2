@@ -173,6 +173,20 @@ class OrderController extends Controller
         }
     }
 
+    public function getAllOrderHistory()
+    {
+        $orders = Order::with(['items.product', 'items.variant', 'user'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All order history retrieved successfully',
+            'data' => $orders,
+        ], 200);
+    }
+
+
     public function handleWebhook(Request $request)
     {
         try {
