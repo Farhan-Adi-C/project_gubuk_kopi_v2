@@ -1,6 +1,7 @@
 
 import Link from "next/link";
 import LoginForm from "@/components/form/LoginForm";
+import ButtonGoogle from "@/components/ui/buttonGoogle";
 
 export default function Login() {
 
@@ -21,14 +22,7 @@ export default function Login() {
         </div>
 
         {/* Login Google */}
-        <button className="w-full border border-gray-300 flex items-center justify-center gap-2 py-2 rounded-md hover:bg-gray-50 transition">
-          <img
-            src="https://www.svgrepo.com/show/475656/google-color.svg"
-            alt="Google"
-            className="w-5 h-5"
-          />
-          <span className="font-medium text-gray-700">Login dengan Google</span>
-        </button>
+        <ButtonGoogle/>
 
         {/* Link Register */}
         <p className="text-center text-sm mt-6">

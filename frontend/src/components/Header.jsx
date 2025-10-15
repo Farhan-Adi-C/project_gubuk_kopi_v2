@@ -5,6 +5,7 @@ import { FaShoppingCart } from "react-icons/fa";
 import { usePathname, useRouter } from "next/navigation";
 import { getAuthToken } from "@/lib/get-token-user";
 import { FaClipboardList } from "react-icons/fa";
+import Image from "next/image";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -146,9 +147,15 @@ export default function Header() {
               <div className="relative group">
                 <button className="flex items-center gap-2">
                   {user?.avatar ? (
-                    <img
-                      src={`http://127.0.0.1:8000/storage/${user.avatar}`}
+                    <Image
+                      src={
+                        user.google_id
+                          ? user.avatar 
+                          : `http://127.0.0.1:8000/storage/${user.avatar}` 
+                      }
                       alt="Avatar"
+                      width={100}
+                      height={100}
                       className="w-12 h-12 rounded-full border border-gray-300 object-cover"
                     />
                   ) : (
