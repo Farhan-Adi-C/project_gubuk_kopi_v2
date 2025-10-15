@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Socialite\Facades\Socialite;
+use GuzzleHttp\Exception\ClientException;
 
 class AuthController extends Controller
 {
@@ -73,4 +76,47 @@ public function logout(Request $request)
         'message' => 'Logged out successfully'
     ]);
 }
+
+public function redirectToAuth()
+{
+       
+        return response()->json([
+            'url' => Socialite::driver('google')
+                ->stateless()
+                ->redirect()
+                ->getTargetUrl(),
+        ]);
+}
+
+public function handleAuthCallback()
+    {
+        try {
+            $socialiteUser = Socialite::driver('google')->stateless()->user();
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'success' => false,
+                'message' => 'Login gagal, kredensial tidak valid.'
+            ], 422);
+        }
+
+        
+        $user = User::updateOrCreate(
+        ['email' => $socialiteUser->getEmail()],
+        [
+            'name' => $socialiteUser->getName(),
+            'google_id' => $socialiteUser->getId(),
+            'avatar' => $socialiteUser->getAvatar(),
+        ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'user' => $user,
+            'access_token' => $user->createToken('auth-token')->plainTextToken,
+            'token_type' => 'Bearer',
+        ]);
+
+
+    }
 }
