@@ -51,3 +51,4 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth:sanctum');
 Route::middleware('auth:sanctum')->get('/userislogin', [AuthController::class, 'userIsLogin']);
 Route::post('/user/update/{id}', [UserController::class, 'update'])->name('updateUser')->middleware('auth:sanctum');
+Route::get('/user', [UserController::class, 'getAllUser'])->name('getAllUser')->middleware('auth:sanctum');

