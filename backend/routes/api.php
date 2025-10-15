@@ -54,3 +54,4 @@ Route::post('/user/update/{id}', [UserController::class, 'update'])->name('updat
 
 Route::get('auth', [AuthController::class, 'redirectToAuth']);
 Route::get('auth/callback', [AuthController::class, 'handleAuthCallback']);
+Route::get('/user', [UserController::class, 'getAllUser'])->name('getAllUser')->middleware('auth:sanctum');

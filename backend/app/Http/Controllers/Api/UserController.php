@@ -55,4 +55,26 @@ class UserController extends Controller
             'data' => $user,
         ]);
     }
+
+    public function getAllUser()
+{
+    try {
+        $users = User::with(['carts', 'orders'])
+                    ->select(['id', 'name', 'email', 'is_admin', 'email_verified_at', 'created_at'])
+                    ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $users,
+            'message' => 'Users retrieved successfully'
+        ], 200);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to retrieve users',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 }

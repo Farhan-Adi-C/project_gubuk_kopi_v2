@@ -25,10 +25,8 @@ import {
   IconChevronsLeft,
   IconChevronsRight,
   IconCircleCheckFilled,
-  IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconLoader,
   IconPlus,
 } from "@tabler/icons-react"
 import {
@@ -49,8 +47,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
@@ -69,13 +65,46 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { getAuthToken } from "@/lib/get-token-user"
+import { useEffect, useState } from "react"
 
 export const schema = z.object({
   id: z.number(),
-  header: z.string(),
-  type: z.string(),
-  status: z.string(),
+  order_id: z.string(),
+  user_name: z.string(),
+  total_amount: z.number(),
+  created_at: z.string(),
+  payment_status: z.string(),
 })
+
+// Format waktu relatif
+function formatTimeAgo(dateString) {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffInSeconds = Math.floor((now - date) / 1000)
+  
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} detik yang lalu`
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60)
+    return `${minutes} menit yang lalu`
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600)
+    return `${hours} jam yang lalu`
+  } else {
+    const days = Math.floor(diffInSeconds / 86400)
+    return `${days} hari yang lalu`
+  }
+}
+
+// Format Rupiah
+function formatRupiah(amount) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount)
+}
 
 // Create a separate component for the drag handle
 function DragHandle({
@@ -95,7 +124,7 @@ function DragHandle({
       <IconGripVertical className="text-muted-foreground size-3" />
       <span className="sr-only">Drag to reorder</span>
     </Button>
-  );
+  )
 }
 
 const columns = [
@@ -105,73 +134,84 @@ const columns = [
     cell: ({ row }) => <DragHandle id={row.original.id} />,
   },
   {
-    accessorKey: "image",
-    header: "Image",
-    cell: ({ row }) => (
-      <div className="size-16 overflow-hidden rounded-md border">
-        <img 
-          src={row.original.image || "https://i.pinimg.com/1200x/9f/f7/af/9ff7af811d9645dae46b8f555e51c2e2.jpg"} 
-          alt="Preview"
-          className="size-full object-cover"
-        />
-      </div>
-    ),
+    accessorKey: "user_avatar",
+    header: "Profile",
+    cell: ({ row }) => {
+      const avatarUrl = row.original.user_avatar 
+        ? `http://localhost:8000/${row.original.user_avatar}`
+        : "/blank-profile.jpg"
+      
+      return (
+        <div className="flex items-center gap-3">
+          <div className="size-8 overflow-hidden rounded-full border">
+            <img 
+              src={avatarUrl}
+              alt={row.original.user_name}
+              className="size-full object-cover"
+              onError={(e) => {
+                e.target.src = "/blank-profile.jpg"
+              }}
+            />
+          </div>
+        </div>
+      )
+    },
   },
   {
-    accessorKey: "header",
-    header: "Header",
+    accessorKey: "user_name",
+    header: "Customer",
     cell: ({ row }) => (
-      <div className="font-medium">{row.original.header}</div>
+      <div className="flex flex-col">
+        <div className="font-medium">{row.original.user_name}</div>
+        <div className="text-xs text-muted-foreground">{row.original.order_id}</div>
+      </div>
     ),
     enableHiding: false,
   },
   {
-    accessorKey: "type",
-    header: "Section Type",
+    accessorKey: "total_amount",
+    header: "Total Amount",
     cell: ({ row }) => (
-      <div className="w-32">
-        <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.type}
-        </Badge>
+      <div className="font-semibold">{formatRupiah(row.original.total_amount)}</div>
+    ),
+  },
+  {
+    accessorKey: "created_at",
+    header: "Order Date",
+    cell: ({ row }) => (
+      <div className="flex flex-col">
+        <div className="text-sm">{new Date(row.original.created_at).toLocaleDateString('id-ID')}</div>
+        <div className="text-xs text-muted-foreground">{formatTimeAgo(row.original.created_at)}</div>
       </div>
     ),
   },
   {
-    accessorKey: "status",
+    accessorKey: "payment_status",
     header: "Status",
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
-      </Badge>
-    ),
-  },
-  {
-    id: "actions",
-    cell: () => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            size="icon">
-            <IconDotsVertical />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem>Edit</DropdownMenuItem>
-          <DropdownMenuItem>Make a copy</DropdownMenuItem>
-          <DropdownMenuItem>Favorite</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
+    cell: ({ row }) => {
+      const status = row.original.payment_status
+      const getStatusConfig = (status) => {
+        switch (status) {
+          case 'paid':
+            return { variant: 'default', icon: <IconCircleCheckFilled className="fill-green-500 size-3" />, label: 'Paid' }
+          case 'pending':
+            return { variant: 'secondary', icon: <IconCircleCheckFilled className="fill-yellow-500 size-3" />, label: 'Pending' }
+          case 'failed':
+            return { variant: 'destructive', icon: <IconCircleCheckFilled className="fill-red-500 size-3" />, label: 'Failed' }
+          default:
+            return { variant: 'outline', icon: null, label: status }
+        }
+      }
+      
+      const config = getStatusConfig(status)
+      
+      return (
+        <Badge variant={config.variant} className="gap-1 px-2 py-1">
+          {config.icon}
+          {config.label}
+        </Badge>
+      )
+    },
   },
 ]
 
@@ -197,15 +237,13 @@ function DraggableRow({
         </TableCell>
       ))}
     </TableRow>
-  );
+  )
 }
 
-export function DataTable({
-  data: initialData
-}) {
-  const [data, setData] = React.useState(() => initialData)
-  const [columnVisibility, setColumnVisibility] =
-    React.useState({})
+export function DataTable() {
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [columnVisibility, setColumnVisibility] = React.useState({})
   const [columnFilters, setColumnFilters] = React.useState([])
   const [sorting, setSorting] = React.useState([])
   const [pagination, setPagination] = React.useState({
@@ -218,6 +256,51 @@ export function DataTable({
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
   )
+
+  // Fetch data orders
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const authToken = await getAuthToken()
+        
+        if (authToken) {
+          const response = await fetch('http://localhost:8000/api/orders/allhistory', {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+          })
+          
+          const result = await response.json()
+          
+          if (result.success) {
+            // Filter hanya orders dengan status paid dan process data untuk table
+            const processedData = result.data
+              .filter(order => order.payment_status === 'paid') // Hanya yang paid
+              .map(order => ({
+                id: order.id,
+                order_id: order.order_id,
+                user_name: order.user?.name || 'Unknown User',
+                user_avatar: order.user?.avatar || null, // Menggunakan field avatar
+                total_amount: order.total_amount,
+                created_at: order.created_at,
+                payment_status: order.payment_status,
+              }))
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort terbaru dulu
+              .slice(0, 10) // Ambil 10 terbaru
+            
+            setData(processedData)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchOrders()
+  }, [])
 
   const dataIds = React.useMemo(() => data?.map(({ id }) => id) || [], [data])
 
@@ -254,6 +337,16 @@ export function DataTable({
     }
   }
 
+  if (loading) {
+    return (
+      <div className="w-full flex-col justify-start gap-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Memuat data orders...</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full flex-col justify-start gap-6">
       <div className="flex items-end justify-end px-4 lg:px-6">
@@ -288,10 +381,7 @@ export function DataTable({
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm">
-            <IconPlus />
-            <span className="hidden lg:inline">Add Section</span>
-          </Button>
+         
         </div>
       </div>
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
@@ -328,7 +418,7 @@ export function DataTable({
                 ) : (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-24 text-center">
-                      No results.
+                      No paid orders found.
                     </TableCell>
                   </TableRow>
                 )}
@@ -338,7 +428,7 @@ export function DataTable({
         </div>
         <div className="flex items-center justify-between px-4">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-            {table.getFilteredRowModel().rows.length} row(s) total.
+            {table.getFilteredRowModel().rows.length} paid order(s) total.
           </div>
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
@@ -407,5 +497,5 @@ export function DataTable({
         </div>
       </div>
     </div>
-  );
+  )
 }
