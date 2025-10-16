@@ -84,7 +84,7 @@ class OrderController extends Controller
                     'duration' => 24 // Expired dalam 24 jam
                 ],
                 'callbacks' => [
-            'finish' => "http://localhost:3000",
+            'finish' => "http://localhost:3000/orderConfirmation/" . $orderId,
         ],
             ];
 
@@ -186,6 +186,23 @@ class OrderController extends Controller
         ], 200);
     }
 
+    public function getHistoryOrderByOrderId($order_id)
+    {
+        $order = Order::where('order_id', $order_id)->get();
+
+        if ($order->isNotEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Order history retrieved successfully',
+                'data' => $order
+            ], 200);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve order history',
+            ], 404);
+        }
+    }
 
     public function handleWebhook(Request $request)
     {

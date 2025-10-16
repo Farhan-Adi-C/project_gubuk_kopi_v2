@@ -8,7 +8,7 @@ export default function Footer() {
   const pathname = usePathname();
 
   // Jangan tampilkan footer di halaman login dan register
-  if (pathname === "/login" || pathname === "/register") {
+  if (pathname === "/login" || pathname === "/register" || pathname.startsWith("/orderConfirmation")) {
     return null;
   }
 

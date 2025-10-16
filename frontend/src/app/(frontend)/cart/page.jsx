@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash } from "react-icons/fa6";
 import { TbShoppingCartX } from "react-icons/tb";
+import { useRouter } from "next/navigation";
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -153,6 +154,8 @@ export default function Cart() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState("");
   const snapScriptLoaded = useRef(false);
+
+   const router = useRouter();
 
 
   // Load Midtrans Snap script
@@ -385,8 +388,9 @@ export default function Cart() {
       
       console.log("Memproses checkout...");
       const result = await checkout(shippingAddress);
+      console.log(result.data.success)
       
-      if (result.success) {
+      if (result.data.success) {
         const snapToken = result.data.data.snap_token;
         console.log("Snap Token received:", snapToken);
         
@@ -398,9 +402,11 @@ export default function Cart() {
         window.snap.pay(snapToken, {
           onSuccess: function(result) {
             alert("Pembayaran berhasil! Pesanan Anda sedang diproses.");
+            console.log("cihuyy");
             // Clear cart setelah pembayaran berhasil
             setCart([]);
             setShippingAddress("");
+            router.push(`/orderConfirmation/${result.order_id}`);
           },
           onPending: function(result) {
             console.log("Payment pending:", result);

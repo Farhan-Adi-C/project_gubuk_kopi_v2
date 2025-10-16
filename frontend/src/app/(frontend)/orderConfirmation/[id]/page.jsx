@@ -1,4 +1,16 @@
+"use client";
+import { getAuthToken } from "@/lib/get-token-user";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
+
 export default function OrderConfirmation({ params }) {
+  const [order, setOrder] = useState(null);
+  const resolvedParams = use(params);
+  const { id } = resolvedParams;
+  const router = useRouter()
+  const [loading, setLoading] = useState(true);
+
   // SVG Icons sebagai komponen
   const CheckIcon = ({ className = "w-16 h-16" }) => (
     <svg
@@ -72,8 +84,65 @@ export default function OrderConfirmation({ params }) {
     </svg>
   );
 
+    useEffect(() => {
+    const fetchOrder = async () => {
+      const token = await getAuthToken();
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:8000/api/order/history/${id}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          }
+        );
+
+        const data = await res.json();
+
+        // Jika tidak berhasil ambil data, langsung arahkan ke beranda
+        if (!data.success || !data.data.length) {
+          return router.replace("/");
+        }
+
+        const orderData = data.data[0];
+
+        // Jika payment belum paid, langsung redirect sebelum render apapun
+        if (orderData.payment_status !== "paid") {
+          return router.replace("/");
+        }
+
+        // Kalau sudah paid, baru simpan dan tampilkan UI
+        setOrder(orderData);
+      } catch (error) {
+        console.error("Error:", error);
+        router.replace("/");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
+  }, [id, router]);
+
+
+if (!order) {
   return (
-    <div className="min-h-screen py-32 bg-gray-50 flex items-center justify-center p-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex flex-col items-center">
+        <div className="w-12 h-12 border-4 border-[#E2A22A] border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-600 font-medium">Loading your order...</p>
+      </div>
+    </div>
+  );
+}
+
+
+
+  return (
+    <div className="min-h-screen  bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-lg mx-auto bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
         {/* Header dengan ikon centang */}
         <div className="bg-[#E2A22A] py-8 px-4 text-center">
@@ -108,28 +177,35 @@ export default function OrderConfirmation({ params }) {
           <div className="bg-[#FFF6E5] rounded-lg p-4 mb-6 border border-[#F5D48B]">
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-600 text-sm">Order Number:</span>
-              <span className="font-semibold text-[#C88C20]">#ORD-123456</span>
+              <span className="font-semibold text-[#C88C20]">#{id}</span>
             </div>
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-600 text-sm">Order Date:</span>
-              <span className="font-semibold">Dec 12, 2023</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600 text-sm">Estimated Delivery:</span>
-              <span className="font-semibold">2-3 Business Days</span>
+              <span className="font-semibold">
+                <p>
+                  {new Date(order.created_at).toLocaleString("id-ID", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}
+                </p>
+              </span>
             </div>
           </div>
 
           {/* Tombol-tombol aksi */}
           <div className="space-y-4">
-            <button className="w-full bg-[#E2A22A] hover:bg-[#C88C20] text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center shadow-md hover:shadow-lg">
+            <Link href={"/historyOrder"} className="w-full bg-[#E2A22A] hover:bg-[#C88C20] text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center shadow-md hover:shadow-lg">
               <DocumentIcon />
               <span className="ml-2">VIEW ORDER</span>
-            </button>
-            <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center border border-gray-300">
+            </Link>
+            <Link href={"/menu"} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center border border-gray-300">
               <CartIcon />
               <span className="ml-2">CONTINUE SHOPPING</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>
