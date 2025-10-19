@@ -320,6 +320,7 @@ export default function Cart() {
       
       if (result.success) {
         setCart(prevCart => prevCart.filter(item => item.id !== cartId));
+        window.dispatchEvent(new Event("cartUpdated"));
       } else {
         throw new Error(result.error);
       }
@@ -402,9 +403,9 @@ export default function Cart() {
         window.snap.pay(snapToken, {
           onSuccess: function(result) {
             alert("Pembayaran berhasil! Pesanan Anda sedang diproses.");
-            console.log("cihuyy");
             // Clear cart setelah pembayaran berhasil
             setCart([]);
+            window.dispatchEvent(new Event("cartUpdated"));
             setShippingAddress("");
             router.push(`/orderConfirmation/${result.order_id}`);
           },

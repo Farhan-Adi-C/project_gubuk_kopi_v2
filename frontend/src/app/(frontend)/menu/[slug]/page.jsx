@@ -82,10 +82,11 @@ export default function MenuDetail({ params }) {
       const result = await response.json();
 
       if (response.ok) {
-        console.log('Added to cart:', result);
+
         
         const variantName = selectedVariant ? ` (${selectedVariant.name})` : '';
         alert(`${quantity} ${menuData.name}${variantName} berhasil ditambahkan ke keranjang!`);
+        window.dispatchEvent(new Event("cartUpdated"));
         
         // Redirect ke menu (sesuai kode Anda)
         router.push('/menu');

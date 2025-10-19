@@ -12,6 +12,7 @@ export default function Header() {
   const [user, setUser] = useState(null);
   const pathname = usePathname();
   const router = useRouter();
+  const [amountcart , setAmoutCart] = useState(0)
 
   const [initial, setInitial] = useState("G");
 
@@ -50,8 +51,39 @@ export default function Header() {
 
   // get total item in cart
   useEffect(() => {
+    const fetchCartCount = async () => {
+      try {
+        const token = await getAuthToken();
+        if (!token) return;
 
-  })
+        const res = await fetch("http://127.0.0.1:8000/api/cart", {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          cache: 'no-store'
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch cart data");
+
+        const data = await res.json();
+        const total = data?.data?.items?.length || 0;
+        setAmoutCart(total);
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+        setAmoutCart(0);
+      }
+    };
+
+    // Listener kalau ada event 'cartUpdated'
+    const handleCartUpdate = () => fetchCartCount();
+
+    fetchCartCount();
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
+  }, [user]);
+
+
 
   const handleLogout = async () => {
     try {
@@ -139,9 +171,11 @@ export default function Header() {
               href={`${user !== null ? "/cart" : "/login"}`}
               className="relative flex items-center gap-2 text-gray-700 hover:text-[#E67E22]">
               <FaShoppingCart className="text-xl" />
-              <span className="absolute -top-2 -right-3 bg-[#E67E22] text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                2
-              </span>
+              {amountcart > 0 && (
+                <span className="absolute -top-2 -right-3 bg-[#E67E22] text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {amountcart}
+                </span>
+              )}
             </Link>
             {user ? (
               <div className="relative group">
