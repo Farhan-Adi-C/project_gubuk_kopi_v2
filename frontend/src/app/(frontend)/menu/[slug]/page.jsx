@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { FiClock, FiPackage, FiShoppingCart } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/lib/get-token-user';
+import toast from 'react-hot-toast';
 
 export default function MenuDetail({ params }) {
   const [menuData, setMenuData] = useState(null);
@@ -85,7 +86,8 @@ export default function MenuDetail({ params }) {
 
         
         const variantName = selectedVariant ? ` (${selectedVariant.name})` : '';
-        alert(`${quantity} ${menuData.name}${variantName} berhasil ditambahkan ke keranjang!`);
+        toast.success(`${quantity} ${menuData.name}${variantName} berhasil ditambahkan ke keranjang!`)
+        // alert(`${quantity} ${menuData.name}${variantName} berhasil ditambahkan ke keranjang!`);
         window.dispatchEvent(new Event("cartUpdated"));
         
         // Redirect ke menu (sesuai kode Anda)

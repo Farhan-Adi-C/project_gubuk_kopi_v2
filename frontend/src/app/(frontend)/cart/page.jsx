@@ -7,6 +7,8 @@ import { useState, useEffect, useRef } from "react";
 import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash } from "react-icons/fa6";
 import { TbShoppingCartX } from "react-icons/tb";
 import { useRouter } from "next/navigation";
+import alertConfirm from "@/components/partial/alert-confirmation";
+import toast from "react-hot-toast";
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -224,7 +226,7 @@ export default function Cart() {
     const availableStock = getAvailableStock(item);
     
     if (currentQuantity >= availableStock) {
-      alert(`Stok tidak mencukupi. Stok tersedia: ${availableStock}`);
+      toast.error(`Stok tidak mencukupi. Stok tersedia: ${availableStock}`)
       return;
     }
 
@@ -270,7 +272,7 @@ export default function Cart() {
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
-      alert(`Gagal update quantity: ${error.message}`);
+      toast.error(`Gagal update quantity: ${error.message}`)
       
       // Jika stok = 0, hapus item dari cart
       if (error.message.includes('Stok tidak mencukupi') && getAvailableStock(item) === 0) {
@@ -296,7 +298,7 @@ export default function Cart() {
       
       if (result.success) {
         setCart(prevCart => prevCart.filter(cartItem => cartItem.id !== cartId));
-        alert(`Produk ${item.product?.name} dihapus dari keranjang karena stok habis`);
+        toast.error(`Produk ${item.product?.name} dihapus dari keranjang karena stok habis`)
       } else {
         throw new Error(result.error);
       }
@@ -309,9 +311,8 @@ export default function Cart() {
 
   // Handle delete item
   const handleDeleteItem = async (cartId, itemName = "item ini") => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus ${itemName} dari keranjang?`)) {
-      return;
-    }
+    const confirmed = await alertConfirm(`Hapus ${itemName} dari keranjang?`);
+     if (!confirmed) return;
 
     try {
       setDeletingItems(prev => new Set(prev).add(cartId));
@@ -354,12 +355,12 @@ export default function Cart() {
   // Handle checkout dengan Midtrans Snap
   const handleCheckout = async () => {
     if (!shippingAddress.trim()) {
-      alert("Mohon masukkan alamat pengiriman");
+      toast.error("Mohon masukkan alamat pengiriman")
       return;
     }
 
     if (cart.length === 0) {
-      alert("Keranjang belanja kosong");
+      toast.error("Keranjang belanja kosong")
       return;
     }
 
@@ -402,7 +403,7 @@ export default function Cart() {
         // Panggil Midtrans Snap
         window.snap.pay(snapToken, {
           onSuccess: function(result) {
-            alert("Pembayaran berhasil! Pesanan Anda sedang diproses.");
+            toast.success("Pembayaran berhasil! Pesanan Anda sedang diproses.")
             // Clear cart setelah pembayaran berhasil
             setCart([]);
             window.dispatchEvent(new Event("cartUpdated"));
@@ -415,7 +416,7 @@ export default function Cart() {
           },
           onError: function(result) {
             console.log("Payment error:", result);
-            alert("Terjadi kesalahan saat proses pembayaran. Silakan coba lagi.");
+            toast.error("Terjadi kesalahan saat proses pembayaran. Silakan coba lagi.")
           },
           onClose: function() {
             console.log("Payment popup closed without completing payment");
@@ -427,7 +428,7 @@ export default function Cart() {
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      alert(`Gagal checkout: ${error.message}`);
+      toast.error(`Gagal checkout: ${error.message}`)
     } finally {
       setCheckoutLoading(false);
     }
