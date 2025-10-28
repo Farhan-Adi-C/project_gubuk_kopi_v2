@@ -103,12 +103,37 @@ export function BlogForm() {
     setErrors({});
   };
 
+  useEffect(() => {
+    const initSummernote = () => {
+      if (window.$ && window.$.fn && window.$.fn.summernote) {
+        window.$("#summernote").summernote({
+          placeholder: "Write your article here...",
+          tabsize: 2,
+          height: 300,
+        });
+      } else {
+        console.warn("Summernote belum siap!");
+      }
+    };
+
+    // tunggu sampai semua script CDN selesai dimuat
+    if (document.readyState === "complete") {
+      initSummernote();
+    } else {
+      window.addEventListener("load", initSummernote);
+    }
+
+    // cleanup listener biar gak nambah terus
+    return () => window.removeEventListener("load", initSummernote);
+  }, []);
+
+
   return (
     <form className="p-6 sm:p-8" onSubmit={handleSubmit} onReset={handleReset}>
       {/* Blog Title */}
       <div className="space-y-2">
         <label htmlFor="title" className="text-sm font-medium">
-          Blog Title *
+          Blog Title <span className="text-red-500">*</span>
         </label>
         <input
           id="title"
@@ -200,7 +225,7 @@ export function BlogForm() {
       </div>
 
       {/* Content */}
-      <div className="mt-6 space-y-2">
+      {/* <div className="mt-6 space-y-2">
         <label htmlFor="content" className="text-sm font-medium">
           Content *
         </label>
@@ -218,6 +243,16 @@ export function BlogForm() {
         <p className="text-xs text-muted-foreground">
           Provide the content of your blog
         </p>
+      </div> */}
+
+      <div className=" mt-6 space-y-2">
+        <label htmlFor="content" className="text-sm font-medium">
+          Content <span className="text-red-500">*</span>
+        </label>
+        <textarea id="summernote" name="content"/>
+        {errors.content && (
+          <p className="text-xs text-destructive">{errors.content}</p>
+        )}
       </div>
 
       {/* Error Submit */}

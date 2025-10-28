@@ -19,6 +19,32 @@ export function BlogForm({ slug }) {
     }
   }, [slug]);
 
+    useEffect(() => {
+      const initSummernote = () => {
+        if (window.$ && window.$.fn && window.$.fn.summernote) {
+          window.$("#summernote").summernote({
+            placeholder: "Write your article here...",
+            tabsize: 2,
+            height: 300,
+          });
+          if (formData.content) {
+          window.$("#summernote").summernote("code", formData.content);
+        }
+        } else {
+          console.warn("Summernote belum siap!");
+        }
+      };
+
+      if (document.readyState === "complete") {
+        initSummernote();
+      } else {
+        window.addEventListener("load", initSummernote);
+      }
+
+      return () => window.removeEventListener("load", initSummernote);
+    }, [blog]);
+
+
   const fetchBlogData = async () => {
     setIsFetching(true);
     try {
@@ -147,7 +173,14 @@ export function BlogForm({ slug }) {
 
     if (selectedImage) {
       formData.append("image", selectedImage);
+    }else if (blog?.image) {
+      formData.append("image", blog.image);
     }
+
+    const content = window.$("#summernote").summernote("code");
+    formData.append("content", content);
+
+    console.log('Submitting form data:', Array.from(formData.entries()));
 
     formData.append("_method", "POST");
 
@@ -321,7 +354,6 @@ export function BlogForm({ slug }) {
 
           <input
             id="image"
-            name="image"
             type="file"
             className="sr-only"
             accept="image/jpeg,image/png,image/jpg"
@@ -353,7 +385,7 @@ export function BlogForm({ slug }) {
       </div>
 
       {/* Content */}
-      <div className="mt-6 space-y-2">
+      {/* <div className="mt-6 space-y-2">
         <label htmlFor="content" className="text-sm font-medium">
           Content *
         </label>
@@ -367,6 +399,16 @@ export function BlogForm({ slug }) {
             errors.content ? "border-destructive" : "border-input"
           } bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring`}
         />
+        {errors.content && (
+          <p className="text-xs text-destructive">{errors.content}</p>
+        )}
+      </div> */}
+
+      <div className=" mt-6 space-y-2">
+        <label htmlFor="content" className="text-sm font-medium">
+          Content <span className="text-red-500">*</span>
+        </label>
+        <textarea id="summernote" name="content" />
         {errors.content && (
           <p className="text-xs text-destructive">{errors.content}</p>
         )}

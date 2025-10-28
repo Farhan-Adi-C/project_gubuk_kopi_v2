@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Number;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Storage;
 
 class BlogController extends Controller
 {
@@ -101,14 +102,20 @@ class BlogController extends Controller
                 'message' => 'blog not found'
             ]);
         }
-        $currentImage = $blog->image;
+        // $currentImage = $blog->image;
 
         $request->validate([
             'title' => 'required|string',
             'content' => 'required'
         ]);
 
+       $imageLatest = $blog->image; 
+
         if ($request->hasFile('image')) {
+            if ($blog->image && Storage::disk('public')->exists($blog->image)) {
+                Storage::disk('public')->delete($blog->image);
+            }
+
             $imageLatest = $request->file('image')->store('blogs', 'public');
         }
 

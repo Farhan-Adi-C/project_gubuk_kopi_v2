@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/theme-provider";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,18 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+        <head>
+        {/* CSS Summernote */}
+        <link
+          href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css"
+          rel="stylesheet"
+        />
+        {/* jQuery (dibutuhkan Summernote) */}
+        <script
+          src="https://code.jquery.com/jquery-3.7.1.min.js"
+          defer
+        ></script>
+      </head>
       <body className={poppins.className}>
         {/* Header */}
         {/* <Header /> */}
@@ -39,6 +52,10 @@ export default function RootLayout({ children }) {
             {children}
           </ThemeProvider>
         {/* <Footer /> */}
+         <Script
+          src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

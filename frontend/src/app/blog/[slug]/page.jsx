@@ -1,17 +1,37 @@
 "use client"; 
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,use } from "react";
 
-export default async function BlogDetail({ params }) {
-  const { slug } = params;
+export default function BlogDetail({ params }) {
+  const { slug } = use(params);
+  const [blog, setBlog] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch detail blog dari API
-  const res = await fetch(`http://127.0.0.1:8000/api/blogs/${slug}`, {
-    cache: "no-store",
-  });
+  useEffect(() => {
+    const fetchBlog = async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/blogs/${slug}`, {
+          cache: "no-store",
+        });
+        const result = await res.json();
+        setBlog(result.data);
+      } catch (error) {
+        console.error("Failed to load blog:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const result = await res.json();
-  const blog = result.data;
+    fetchBlog();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <section className="px-5 max-w-6xl py-28 md:py-32 mx-auto text-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </section>
+    );
+  }
 
   if (!blog) {
     return (
@@ -94,28 +114,14 @@ export default async function BlogDetail({ params }) {
           <article className="p-8 md:p-12">
             <div
               className="prose prose-lg max-w-none
-              prose-headings:text-gray-900
-              prose-p:text-gray-700 prose-p:leading-relaxed prose-p:text-justify
-              prose-blockquote:border-l-4 prose-blockquote:border-[#E2A22A] prose-blockquote:bg-[#E2A22A]/10 prose-blockquote:px-6 prose-blockquote:py-4 prose-blockquote:rounded-r-lg
-              prose-strong:text-gray-900
-              prose-a:text-[#E2A22A] hover:prose-a:text-[#E2A22A]/80
-              prose-ul:list-disc prose-ul:pl-6
-              prose-ol:list-decimal prose-ol:pl-6
-              prose-li:text-gray-700
-              prose-img:rounded-xl prose-img:shadow-md
-              prose-hr:border-[#E2A22A]/30
-              prose-pre:bg-gray-900 prose-pre:text-gray-100
-              prose-code:bg-[#E2A22A]/20 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm prose-code:text-[#E2A22A]
-              prose-table:border-[#E2A22A]/30
-              prose-th:bg-[#E2A22A]/10
-            "
-            >
-              {blog.content.split("\r\n").map((paragraph, i) =>
-                paragraph.trim() ? (
-                  <p key={i}>{paragraph}</p>
-                ) : null
-              )}
-            </div>
+                prose-headings:text-gray-900
+                prose-p:text-gray-700 prose-p:leading-relaxed prose-p:text-justify
+                prose-a:text-[#E2A22A] hover:prose-a:text-[#E2A22A]/80
+                prose-img:rounded-xl prose-img:shadow-md
+                prose-blockquote:border-l-4 prose-blockquote:border-[#E2A22A] prose-blockquote:bg-[#E2A22A]/10 prose-blockquote:px-6 prose-blockquote:py-4 prose-blockquote:rounded-r-lg
+              "
+              dangerouslySetInnerHTML={{ __html: blog.content }}
+            />
 
             {/* Article Footer */}
             <div className="mt-12 pt-8 border-t border-[#E2A22A]/30">
