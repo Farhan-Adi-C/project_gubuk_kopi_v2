@@ -2,13 +2,12 @@ import Image from "next/image";
 import Header from "@/components/Header";
 import { Bitter } from "next/font/google";
 import Footer from "@/components/Footer";
-import { FaArrowRight, FaCartShopping } from "react-icons/fa6";
+import { FaArrowRight, FaCartShopping, FaLeaf } from "react-icons/fa6";
 import { GiCoffeeBeans } from "react-icons/gi";
 import { FaCoffee,FaSmile,FaTag } from "react-icons/fa";
 import { BiArrowFromRight } from "react-icons/bi";
 import ListMenuHome from "@/components/list-menu-home";
 import Link from "next/link";
-
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -18,11 +17,16 @@ const bitter = Bitter({
 
 export default function Home() {
   return (
-    <div className="bg-gray-50 min-h-screen flex flex-col">
+    <div className="bg-white min-h-screen flex flex-col">
       {/* Hero Section */}
       <main className="flex flex-col lg:flex-row items-center flex-grow px-4 md:px-16 lg:px-32 gap-10 pt-28 lg:h-screen lg:items-center">
         {/* Left Side */}
         <div className="w-full lg:w-1/2 text-left">
+          <div className="hidden md:inline-flex items-center gap-2 bg-[#E2A22A]/10 text-amber-800 font-medium text-sm px-4 py-2 rounded-full mb-4 shadow-sm border border-[#E2A22A]/20 backdrop-blur-sm">
+            <FaLeaf className="text-[#E2A22A]" />
+            <span className="font-semibold">Kopi Asli Nusantara</span>
+            <span className="text-[#E2A22A]">— Sejak 1980</span>
+          </div>
           <h1
             className={`${bitter.className} text-3xl font-bold md:text-5xl mb-6 leading-snug`}>
             Rasakan Hangatnya Kopi Nusantara di Tengah Desa
@@ -32,12 +36,12 @@ export default function Home() {
             dari pagi hingga malam dengan aroma Nusantara yang memikat.
           </p>
           <div className="flex flex-col md:flex-row gap-3">
-            <button className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 w-full md:w-auto">
+            <Link href={'/menu'} className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 w-full md:w-auto">
               Beli Sekarang
-            </button>
-            <button className="bg-transparent border-2 border-[#E2A22A] text-black px-6 py-3 rounded-lg hover:bg-[#E2A22A] hover:text-white transition-colors duration-200 w-full md:w-auto">
+            </Link>
+            <a href="#contact" className="bg-transparent border-2 border-[#d28f12] text-black px-6 py-3 rounded-lg hover:bg-[#E2A22A] hover:text-white transition-colors duration-200 w-full md:w-auto">
               Kontak Kami
-            </button>
+            </a>
           </div>
         </div>
 
@@ -206,7 +210,7 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section className="bg-white border-t border-gray-300 py-12 px-4 md:px-6 mt-10 lg:mt-0">
+      <section className="bg-white border-t border-gray-300 py-12 px-4 md:px-6 mt-10 lg:mt-0" id="contact">
         <h2
           className={` ${bitter.className} text-[#E2A22A] text-2xl md:text-4xl font-bold mb-4 text-center`}>
           Hubungi Kami
