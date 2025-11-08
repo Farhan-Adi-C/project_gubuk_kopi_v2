@@ -15,6 +15,7 @@ Route::get('/products/{slug}', [ProductController::class, 'show']);
 Route::get('/products/edit/{slug}', [ProductController::class, 'edit']);
 Route::post('/products/update/{slug}', [ProductController::class, 'update']);
 Route::delete('/products/delete/{slug}', [ProductController::class, 'destroy']);
+Route::get('/products/highlight/best',[ProductController::class,'bestSellers']);
 
 Route::prefix('categories')->group(function () {
     Route::get('/', [CategoryController::class, 'index'])->name('api.categories.index');

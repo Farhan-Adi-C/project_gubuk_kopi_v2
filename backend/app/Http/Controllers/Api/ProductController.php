@@ -6,6 +6,7 @@ use App\Models\Product;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\ProductVariant;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -13,14 +14,53 @@ use Illuminate\Support\Facades\Validator;
 class ProductController extends Controller
 {
 
-    public function index(){
-        $products = Product::with(['category', 'variants'])->get();
-        return response()->json([
-            'message' => 'success',
-            'data' => $products->load('variants')
-        ], 200);
+public function index()
+{
+    $bestSellerIds = Product::join('order_items', 'order_items.product_id', '=', 'products.id')
+        ->select('products.id', DB::raw('SUM(order_items.quantity) as total_sold'))
+        ->groupBy('products.id')
+        ->orderByDesc('total_sold')
+        ->limit(4)
+        ->pluck('products.id');
+
+    $products = Product::with(['category', 'variants'])
+        ->get()
+        ->map(function ($product) use ($bestSellerIds) {
+            $product->is_best_seller = $bestSellerIds->contains($product->id);
+            return $product;
+        });
+
+    return response()->json([
+        'message' => 'success',
+        'data' => $products
+    ]);
+}
+
+
+
+    public function bestSellers()
+{
+    $bestSellers = Product::select('products.*', DB::raw('SUM(order_items.quantity) as total_sold'))
+        ->join('order_items', 'order_items.product_id', '=', 'products.id')
+        ->groupBy('products.id')
+        ->orderByDesc('total_sold')
+        ->take(4)
+        ->get();
+
+    if ($bestSellers->count() < 4) {
+        $remaining = 4 - $bestSellers->count();
+        $randomProducts = Product::inRandomOrder()
+            ->whereNotIn('id', $bestSellers->pluck('id'))
+            ->take($remaining)
+            ->get();
+        $bestSellers = $bestSellers->merge($randomProducts);
     }
 
+    return response()->json([
+        'message' => 'success',
+        'data' => $bestSellers
+    ]);
+}
     
     public function store(Request $request)
 {

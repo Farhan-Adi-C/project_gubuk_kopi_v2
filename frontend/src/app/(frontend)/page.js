@@ -6,6 +6,8 @@ import { FaArrowRight, FaCartShopping } from "react-icons/fa6";
 import { GiCoffeeBeans } from "react-icons/gi";
 import { FaCoffee,FaSmile,FaTag } from "react-icons/fa";
 import { BiArrowFromRight } from "react-icons/bi";
+import ListMenuHome from "@/components/list-menu-home";
+import Link from "next/link";
 
 
 const bitter = Bitter({
@@ -186,8 +188,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Menu Best Seller Section */}
-      <section className="py-10 px-4 md:px-16 lg:px-32 bg-white flex flex-col items-center">
+      
+    <section className="py-10 px-4 md:px-16 lg:px-32 bg-white flex flex-col items-center">
         <h2
           className={`${bitter.className} text-[#E2A22A] text-2xl md:text-4xl font-bold mb`}>
           Menu Best Seller
@@ -197,72 +199,12 @@ export default function Home() {
         </h3>
           {/* see all button */}
         <div className="w-full flex justify-end">
-          <a href="#" className="text-[#E2A22A] font-semibold mb-6 flex items-center gap-1 hover:underline">See all menu</a>
+          <Link href={'/menu'} className="text-[#E2A22A] font-semibold mb-6 flex items-center gap-1 hover:underline">See all menu</Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-          {/* Menu Item Card */}
-          {[
-            {
-              name: "Kopi Tubruk Gula Aren",
-              description:
-                "Kopi tubruk klasik dengan sentuhan manis gula aren.",
-              price: "15.000",
-              image: "/menu.jpg",
-            },
-            {
-              name: "Es Kopi Susu",
-              description: "Kopi dingin dengan susu segar dan es batu.",
-              price: "18.000",
-              image: "/menu.jpg",
-            },
-            {
-              name: "Kopi Rempah",
-              description:
-                "Kopi dengan campuran rempah pilihan untuk rasa yang unik.",
-              price: "20.000",
-              image: "/menu.jpg",
-            },
-            {
-              name: "Ice Blended Mocca",
-              description: "Kopi mocca dingin dengan whipped cream.",
-              price: "22.000",
-              image: "/menu.jpg",
-            },
-          ].map((item, index) => (
-            <div
-              key={index}
-              className="bg-transparent rounded-xl  overflow-hidden border border-slate-300 flex flex-col">
-              <div className="relative h-48 w-full">
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute top-2 left-2 bg-[#E2A22A] text-white px-3 py-1 rounded-full text-sm">
-                  Best Seller
-                </div>
-              </div>
-              <div className="p-4 flex flex-col flex-grow">
-                <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
-                <p className="text-gray-700 text-sm flex-grow">
-                  {item.description}
-                </p>
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="text-[#E2A22A] font-bold text-lg">
-                    Rp {item.price}
-                  </span>
-                </div>
-                <button className="bg-[#E2A22A] text-white mt-3 px-4 py-2 rounded-lg hover:bg-[#d28f12] transition-colors duration-200">
-                  Pesan
-                  {/* Bisa tambahkan icon keranjang di sini jika mau */}
-                  <FaCartShopping className="inline ml-2" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* list card */}
+        <ListMenuHome />
       </section>
+
       {/* Contact Section */}
       <section className="bg-white border-t border-gray-300 py-12 px-4 md:px-6 mt-10 lg:mt-0">
         <h2

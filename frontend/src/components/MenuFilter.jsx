@@ -45,7 +45,7 @@ export default function MenuFilter() {
       <hr className="mb-6" />
 
       {/* Menu Cards */}
-      <div className="grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 px-5 lg:px-20">
+      <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-5 lg:px-20">
         {filteredMenu.map((item) => {
           const finalPrice =
             item.discount > 0
@@ -73,7 +73,7 @@ export default function MenuFilter() {
                   }`}
                 />
                 {/* Label Best Seller */}
-                {!item.bestSeller && (
+                {item.is_best_seller && (
                   <div className="absolute top-2 left-2 bg-[#E2A22A] text-white px-3 py-1 rounded-full text-sm">
                     Best Seller
                   </div>
