@@ -214,8 +214,9 @@ export default function Header() {
             ) : (
               <Link
                 href="/login"
-                className="bg-[#E67E22] text-white px-4 py-2 rounded-xl hover:bg-[#cf6d13] transition-colors">
-                Login
+                className="relative inline-flex items-center justify-center px-6 py-2 text-white font-semibold rounded-xl bg-gradient-to-r from-[#E2A22A] to-[#E67E22] hover:from-[#E67E22] hover:to-[#E2A22A] transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.03]"
+              >
+                <span>Login</span>
               </Link>
             )}
           </nav>
@@ -321,7 +322,7 @@ export default function Header() {
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="px-5 py-3 bg-[#E67E22] text-white text-center hover:bg-[#cf6d13] font-semibold">
+              className="px-5 py-3 bg-gradient-to-r from-[#E2A22A] to-[#E67E22] hover:from-[#E67E22] hover:to-[#E2A22A] transition-all duration-300 text-white text-center hover:bg-[#cf6d13] font-semibold">
               Login
             </Link>
           )}
