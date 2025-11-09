@@ -59,4 +59,5 @@ Route::get('auth', [AuthController::class, 'redirectToAuth']);
 Route::get('auth/callback', [AuthController::class, 'handleAuthCallback']);
 Route::get('/user', [UserController::class, 'getAllUser'])->name('getAllUser')->middleware('auth:sanctum');
 
-Route::post('/send/message',[ContactMessageController::class,'getMessage']);
+Route::post('/send/message',[ContactMessageController::class,'sendMessage']);
+Route::get('/get/message',[ContactMessageController::class,'getMessage'])->middleware('auth:sanctum');

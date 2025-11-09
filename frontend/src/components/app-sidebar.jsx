@@ -12,6 +12,7 @@ import {
   IconFileWord,
   IconInnerShadowTop,
   IconBook,
+  IconMail,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -57,9 +58,9 @@ const data = {
       icon: IconBook,
     },
     {
-      title: "Team",
-      url: "/admin/team",
-      icon: IconUsers,
+      title: "Message",
+      url: "/admin/message",
+      icon: IconMail,
     },
   ],
   

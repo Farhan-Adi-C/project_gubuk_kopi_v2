@@ -227,3 +227,34 @@ export async function getCart() {
     return { success: false, error: error.message };
   }
 }
+
+export async function getMessage() {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("User belum login. Token tidak ditemukan.");
+    }
+
+    const res = await fetch("http://localhost:8000/api/get/message", {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || `Gagal mengambil cart (${res.status})`);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Get cart error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
