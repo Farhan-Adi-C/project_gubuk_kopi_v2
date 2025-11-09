@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 
 
+import Swal from "sweetalert2";
+
 export default function RegisterForm() {
   const router = useRouter();
 
@@ -18,8 +20,7 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirmation, setShowPasswordConfirmation] =
-    useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -55,12 +56,30 @@ export default function RegisterForm() {
 
       // Simpan token di cookie
       if (data.access_token) {
-        Cookies.set("token", data.access_token, { expires: 7 }); 
+        Cookies.set("token", data.access_token, { expires: 1 });
       }
 
-      alert("Registrasi berhasil!");
-      router.push("/");
+      // 🔹 SweetAlert2 sukses
+      Swal.fire({
+        title: "Registrasi Berhasil 🎉",
+        text: "Akun kamu sudah terdaftar, silakan login!",
+        icon: "success",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
+
     } catch (err) {
+      // 🔹 SweetAlert2 error
+      Swal.fire({
+        title: "Registrasi Gagal 😢",
+        text: err.message || "Terjadi kesalahan, silakan coba lagi.",
+        icon: "error",
+        confirmButtonColor: "#d33",
+      });
       setError(err.message);
     } finally {
       setLoading(false);

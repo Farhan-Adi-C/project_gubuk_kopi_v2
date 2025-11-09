@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash } from "react-icons/fa6";
 import { TbShoppingCartX } from "react-icons/tb";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -308,33 +309,60 @@ export default function Cart() {
   };
 
   // Handle delete item
-  const handleDeleteItem = async (cartId, itemName = "item ini") => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus ${itemName} dari keranjang?`)) {
-      return;
-    }
 
-    try {
-      setDeletingItems(prev => new Set(prev).add(cartId));
-      
-      const result = await removeFromCart(cartId);
-      
-      if (result.success) {
-        setCart(prevCart => prevCart.filter(item => item.id !== cartId));
-        window.dispatchEvent(new Event("cartUpdated"));
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      alert(`Gagal menghapus item: ${error.message}`);
-    } finally {
-      setDeletingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(cartId);
-        return newSet;
+const handleDeleteItem = async (cartId, itemName = "item ini") => {
+  // 🔹 Ganti confirm() dengan SweetAlert2
+  const result = await Swal.fire({
+    title: "Yakin ingin menghapus?",
+    text: `Apakah Anda yakin ingin menghapus ${itemName} dari keranjang?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Ya, hapus!",
+    cancelButtonText: "Batal",
+  });
+
+  if (!result.isConfirmed) return; // ❌ Jika user batal, langsung stop
+
+  try {
+    setDeletingItems((prev) => new Set(prev).add(cartId));
+
+    const response = await removeFromCart(cartId);
+
+    if (response.success) {
+      setCart((prevCart) => prevCart.filter((item) => item.id !== cartId));
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // ✅ Sweet alert sukses
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil Dihapus!",
+        text: `${itemName} telah dihapus dari keranjang.`,
+        timer: 1500,
+        showConfirmButton: false,
       });
+    } else {
+      throw new Error(response.error);
     }
-  };
+  } catch (error) {
+    console.error("Error deleting item:", error);
+
+    // ❌ Sweet alert error
+    Swal.fire({
+      icon: "error",
+      title: "Gagal Menghapus",
+      text: error.message || "Terjadi kesalahan, silakan coba lagi.",
+    });
+  } finally {
+    setDeletingItems((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(cartId);
+      return newSet;
+    });
+  }
+};
+
 
   // Check untuk items dengan stok = 0 saat component mount
   useEffect(() => {

@@ -24,9 +24,6 @@ export default function ButtonGoogle() {
       className="w-full border border-gray-300 flex items-center justify-center gap-2 py-2 rounded-md hover:bg-gray-50 transition relative"
       disabled={loading}
     >
-      {loading && (
-        <FaSpinner className="animate-spin absolute left-3 text-gray-500" />
-      )}
       <img
         src="https://www.svgrepo.com/show/475656/google-color.svg"
         alt="Google"

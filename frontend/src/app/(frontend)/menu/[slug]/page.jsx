@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { FiClock, FiPackage, FiShoppingCart } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/lib/get-token-user';
+import Swal from 'sweetalert2'; // ✅ import SweetAlert2
 
 export default function MenuDetail({ params }) {
   const [menuData, setMenuData] = useState(null);
@@ -29,6 +30,11 @@ export default function MenuDetail({ params }) {
         setMenuData(data);
       } catch (error) {
         console.error('Error fetching product:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Memuat',
+          text: 'Terjadi kesalahan saat mengambil data produk.',
+        });
       } finally {
         setLoading(false);
       }
@@ -44,21 +50,31 @@ export default function MenuDetail({ params }) {
       const token = await getAuthToken();
       
       if (!token) {
-        alert('Silakan login terlebih dahulu!');
-        router.push('/login');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Harus Login',
+          text: 'Silakan login terlebih dahulu untuk menambahkan ke keranjang.',
+          confirmButtonText: 'Login Sekarang',
+        }).then(() => router.push('/login'));
         return;
       }
 
-      // Validasi tambahan
       if (!menuData?.id) {
-        alert('Data produk tidak valid');
+        Swal.fire({
+          icon: 'error',
+          title: 'Produk Tidak Valid',
+          text: 'Data produk tidak valid.',
+        });
         return;
       }
 
-      // Validasi stok
       const availableStock = selectedVariant?.stock || menuData.stock;
       if (quantity > availableStock) {
-        alert(`Stok tidak mencukupi. Stok tersedia: ${availableStock}`);
+        Swal.fire({
+          icon: 'error',
+          title: 'Stok Tidak Cukup',
+          text: `Stok tersedia hanya ${availableStock} item.`,
+        });
         return;
       }
 
@@ -82,21 +98,32 @@ export default function MenuDetail({ params }) {
       const result = await response.json();
 
       if (response.ok) {
-
-        
         const variantName = selectedVariant ? ` (${selectedVariant.name})` : '';
-        alert(`${quantity} ${menuData.name}${variantName} berhasil ditambahkan ke keranjang!`);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil!',
+          text: `${quantity} ${menuData.name}${variantName} berhasil ditambahkan ke keranjang!`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
         window.dispatchEvent(new Event("cartUpdated"));
-        
-        // Redirect ke menu (sesuai kode Anda)
         router.push('/menu');
       } else {
-        console.error('Error adding to cart:', result);
-        alert(result.message || 'Gagal menambahkan ke keranjang. Silakan coba lagi.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menambahkan',
+          text: result.message || 'Gagal menambahkan ke keranjang. Silakan coba lagi.',
+        });
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
-      alert('Terjadi kesalahan jaringan. Silakan coba lagi.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Terjadi Kesalahan',
+        text: 'Terjadi kesalahan jaringan. Silakan coba lagi.',
+      });
     } finally {
       setAddingToCart(false);
     }
@@ -124,12 +151,8 @@ export default function MenuDetail({ params }) {
     : basePrice;
   const finalPrice = discountedPrice + ((selectedVariant?.additional_price || 0) * quantity);
 
-  // Mendapatkan stok yang tersedia
-  const getAvailableStock = () => {
-    return selectedVariant?.stock || menuData.stock;
-  };
+  const getAvailableStock = () => selectedVariant?.stock || menuData.stock;
 
-  // Mendapatkan status stok
   const getStockStatus = () => {
     const stock = getAvailableStock();
     if (stock === 0) return { text: 'Stok Habis', color: 'text-red-500' };

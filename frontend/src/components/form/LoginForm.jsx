@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import Swal from "sweetalert2";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -13,59 +14,78 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      // 🔹 Kirim ke API Laravel
-      const res = await fetch("http://127.0.0.1:8000/api/login", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    // 🔹 Kirim ke API Laravel
+    const res = await fetch("http://127.0.0.1:8000/api/login", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(
-          data.message || "Login gagal, periksa kembali data Anda."
-        );
-      }
+    if (!res.ok) {
+      throw new Error(
+        data.message || "Login gagal, periksa kembali data Anda."
+      );
+    }
 
-      //  Simpan token ke cookie (berlaku 1 hari)
-      Cookies.set("token", data.access_token, { expires: 1 });
+    // 🔹 Simpan token ke cookie (berlaku 1 hari)
+    Cookies.set("token", data.access_token, { expires: 1 });
 
-      //  Ambil data user
-      const userRes = await fetch("http://127.0.0.1:8000/api/userislogin", {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${data.access_token}`,
-        },
-      });
+    // 🔹 Ambil data user
+    const userRes = await fetch("http://127.0.0.1:8000/api/userislogin", {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${data.access_token}`,
+      },
+    });
 
-      const userData = await userRes.json();
-      if (!userRes.ok)
-        throw new Error(userData.message || "Gagal mengambil data user.");
+    const userData = await userRes.json();
+    if (!userRes.ok)
+      throw new Error(userData.message || "Gagal mengambil data user.");
 
-      Cookies.set("user", JSON.stringify(userData.user), { expires: 1 });
+    Cookies.set("user", JSON.stringify(userData.user), { expires: 1 });
 
-      // 🔹 Arahkan ke halaman sesuai role
+    // 🔹 Tampilkan loading alert sementara login sukses
+    Swal.fire({
+      title: "Login Berhasil!",
+      text: "Selamat datang kembali 👋",
+      icon: "success",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+
+    // 🔹 Arahkan ke halaman sesuai role
+    setTimeout(() => {
       if (userData.user.is_admin == 1) {
         router.push("/admin/dashboard");
       } else {
         router.push("/");
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 1500);
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      title: "Login Gagal",
+      text: err.message || "Periksa kembali email dan password Anda.",
+      icon: "error",
+      confirmButtonColor: "#d33",
+    });
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <form onSubmit={handleLogin}>

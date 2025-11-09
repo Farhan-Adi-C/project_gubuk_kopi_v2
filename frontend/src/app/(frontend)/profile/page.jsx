@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { getAuthToken } from "@/lib/get-token-user";
+import Swal from "sweetalert2"; 
 
 export default function Profile() {
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -16,11 +17,10 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 1. Ambil data current user saat halaman dimuat
+  // 1. Ambil data current user
   useEffect(() => {
     const fetchUser = async () => {
       const token = await getAuthToken();
-      console.log("Token:", token);
       try {
         const res = await fetch("http://localhost:8000/api/userislogin", {
           method: "GET",
@@ -33,14 +33,11 @@ export default function Profile() {
 
         const data = await res.json();
         if (data.status === "success" && data.user) {
-          console.log("User data:", data.user);
           setUser(data.user);
           setName(data.user.name || "");
           setEmail(data.user.email || "");
           if (data.user.avatar) {
-            setAvatarPreview(
-              `http://127.0.0.1:8000/storage/${data.user.avatar}`
-            );
+            setAvatarPreview(`http://127.0.0.1:8000/storage/${data.user.avatar}`);
           }
         }
       } catch (err) {
@@ -51,7 +48,7 @@ export default function Profile() {
     fetchUser();
   }, []);
 
-  //  2. Handle upload avatar
+  // 2. Handle avatar upload
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -60,7 +57,7 @@ export default function Profile() {
     }
   };
 
-  //  3. Update profile
+  // 3. Update profile
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -85,28 +82,43 @@ export default function Profile() {
       );
 
       const data = await res.json();
-      console.log("Update response:", data);
+      console.log("Update profile response:", data);
 
-      if (data.status === "success" && data.user) {
-        alert("Profile updated successfully!");
-        setUser(data.user);
-        setName(data.user.name || "");
-        if (data.user.avatar) {
-          setAvatarPreview(`http://127.0.0.1:8000/storage/${data.user.avatar}`);
+      if (data.status == 'success' && data.data) {
+        Swal.fire({
+          title: "Berhasil 🎉",
+          text: "Profil berhasil diperbarui!",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        setUser(data.data);
+        setName(data.data.name || "");
+        if (data.data.avatar) {
+          setAvatarPreview(`http://127.0.0.1:8000/storage/${data.data.avatar}`);
         }
-         window.dispatchEvent(new Event("ProfileUpdated"));
+        window.dispatchEvent(new Event("ProfileUpdated"));
       } else {
-        alert(data.message || "Failed to update profile");
+        Swal.fire({
+          title: "Gagal 😢",
+          text: data.message || "Gagal memperbarui profil.",
+          icon: "error",
+          confirmButtonColor: "#d33",
+        });
       }
     } catch (err) {
       console.error("Error updating profile:", err);
-      alert("Something went wrong while updating profile");
+      Swal.fire({
+        title: "Error ⚠️",
+        text: "Terjadi kesalahan saat memperbarui profil.",
+        icon: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // 🧩 4. Change password
+  // 4. Change password
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -119,7 +131,7 @@ export default function Profile() {
           method: "POST",
           headers: {
             Accept: "application/json",
-            "Content-Type": "application/json", 
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
@@ -131,16 +143,31 @@ export default function Profile() {
 
       const data = await res.json();
       if (data.status === "success") {
-        alert("Password changed successfully!");
+        Swal.fire({
+          title: "Password Diubah 🔐",
+          text: "Password kamu berhasil diperbarui!",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
         setOldPassword("");
         setNewPassword("");
         window.dispatchEvent(new Event("ProfileUpdated"));
       } else {
-        alert(data.message || "Failed to change password");
+        Swal.fire({
+          title: "Gagal Mengubah Password 😢",
+          text: data.message || "Password lama salah atau format tidak valid.",
+          icon: "error",
+          confirmButtonColor: "#d33",
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+      Swal.fire({
+        title: "Error ⚠️",
+        text: "Terjadi kesalahan, coba lagi nanti.",
+        icon: "error",
+      });
     } finally {
       setLoading(false);
     }

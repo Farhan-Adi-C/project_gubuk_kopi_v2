@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { getAuthToken } from "@/lib/get-token-user";
 import { FaClipboardList } from "react-icons/fa";
 import Image from "next/image";
+import Swal from "sweetalert2";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -91,25 +92,57 @@ export default function Header() {
 
 
 
-  const handleLogout = async () => {
-    try {
-      const token = await getAuthToken();
-      await fetch("http://127.0.0.1:8000/api/logout", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    } finally {
-      // hapus token di cookie
-      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      setUser(null);
-      setOpen(false);
-      router.push("/login");
-    }
-  };
+const handleLogout = async () => {
+  const confirmLogout = await Swal.fire({
+    title: "Yakin mau logout?",
+    text: "Kamu harus login lagi nanti.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Ya, logout",
+    cancelButtonText: "Batal",
+  });
+
+  if (!confirmLogout.isConfirmed) return;
+
+  try {
+    const token = await getAuthToken();
+    await fetch("http://127.0.0.1:8000/api/logout", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // hapus token di cookie
+    document.cookie =
+      "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+    setUser(null);
+    setOpen(false);
+
+    await Swal.fire({
+      title: "Logout Berhasil",
+      text: "Sampai jumpa lagi!",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    router.push("/login");
+  } catch (error) {
+    console.error("Logout error:", error);
+    Swal.fire({
+      title: "Gagal Logout",
+      text: "Terjadi kesalahan saat logout.",
+      icon: "error",
+    });
+  }
+};
+
 
   if (
     pathname === "/login" ||

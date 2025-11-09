@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getAuthToken } from "@/lib/get-token-user";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 export default function FormContact(){
 
@@ -54,7 +55,13 @@ export default function FormContact(){
             const data = await response.json();
 
             if (data.success) {
-                alert('Pesan berhasil dikirim!');
+                Swal.fire({
+                icon: "success",
+                title: "Pesan Terkirim!",
+                text: "Terima kasih sudah menghubungi kami 😊",
+                timer: 2000,
+                showConfirmButton: false,
+                });
                 setError(null);
                 setErrors({});
                 setName('');
