@@ -8,6 +8,7 @@ import { FaCoffee,FaSmile,FaTag } from "react-icons/fa";
 import { BiArrowFromRight } from "react-icons/bi";
 import ListMenuHome from "@/components/list-menu-home";
 import Link from "next/link";
+import FormContact from "@/components/form-contact";
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -275,40 +276,7 @@ export default function Home() {
 
           {/* Form Kontak */}
           <div className="bg-transparent border border-gray-400 rounded-lg p-6">
-            <form className="flex flex-col gap-4">
-              <div>
-                <label className="block text-gray-700 mb-2 font-medium">
-                  Nama
-                </label>
-                <input
-                  type="text"
-                  placeholder="Nama Anda"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium">Email</label>
-                <input
-                  type="email"
-                  placeholder="Email Anda"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-2 font-medium">
-                  Message
-                </label>
-                <textarea
-                  rows="5"
-                  placeholder="Pesan Anda"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brown-500"></textarea>
-              </div>
-              <button
-                type="submit"
-                className="bg-transparent border border-[#E2A22A] text-[#E2A22A] hover:bg-[#E2A22A] hover:text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                Kirim Pesan
-              </button>
-            </form>
+            <FormContact />
           </div>
         </div>
       </section>

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\ContactMessageController;
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::post('/products/create', [ProductController::class, 'store']);
@@ -57,3 +58,5 @@ Route::post('/user/update/{id}', [UserController::class, 'update'])->name('updat
 Route::get('auth', [AuthController::class, 'redirectToAuth']);
 Route::get('auth/callback', [AuthController::class, 'handleAuthCallback']);
 Route::get('/user', [UserController::class, 'getAllUser'])->name('getAllUser')->middleware('auth:sanctum');
+
+Route::post('/send/message',[ContactMessageController::class,'getMessage']);
