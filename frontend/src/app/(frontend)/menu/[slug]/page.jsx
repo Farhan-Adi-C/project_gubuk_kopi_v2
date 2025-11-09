@@ -269,7 +269,7 @@ export default function MenuDetail({ params }) {
           <button
             onClick={addToCart}
             disabled={addingToCart || getAvailableStock() === 0}
-            className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 disabled:bg-gray-400 text-white py-3 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+            className="w-full bg-[#E2A22A] hover:bg-[#cf6d17] disabled:bg-amber-400 text-white py-3 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed"
           >
             {addingToCart ? (
               <>
