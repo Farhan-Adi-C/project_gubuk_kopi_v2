@@ -10,6 +10,51 @@ use Illuminate\Validation\Rules\File;
 
 class UserController extends Controller
 {
+    public function index()
+    {
+        try {
+            $user = User::all();
+            return response()->json([
+                'success' => true,
+                'message' => 'user retrived succesfully',
+                'data' => $user
+            ],200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e
+            ],500);
+        }
+    }
+
+    public function create(Request $request)
+    {
+         $request->validate([
+            'name' => 'required',
+            'email' => 'required',
+            'password' => 'required'
+        ]);
+
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'user sukses ditambahkan',
+                'data' => $user
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e
+            ],500);
+        }
+    }
+
      public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -55,6 +100,32 @@ class UserController extends Controller
             'data' => $user,
         ]);
     }
+    
+    public function delete($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+
+            $user->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User deleted successfully',
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'User not found',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete user',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
     public function getAllUser()
 {
