@@ -37,10 +37,10 @@ export default function Home() {
             dari pagi hingga malam dengan aroma Nusantara yang memikat.
           </p>
           <div className="flex flex-col md:flex-row gap-3">
-            <Link href={'/menu'} className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 w-full md:w-auto">
+            <Link href={'/menu'} className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 w-full md:w-auto flex items-center justify-center">
               Beli Sekarang
             </Link>
-            <a href="#contact" className="bg-transparent border-2 border-[#d28f12] text-black px-6 py-3 rounded-lg hover:bg-[#E2A22A] hover:text-white transition-colors duration-200 w-full md:w-auto">
+            <a href="#contact" className="bg-transparent border-2 border-[#E2A22A] text-black px-6 py-3 rounded-lg hover:bg-[#d28f12] hover:text-white transition-colors duration-200 w-full md:w-auto flex items-center justify-center">
               Kontak Kami
             </a>
           </div>
