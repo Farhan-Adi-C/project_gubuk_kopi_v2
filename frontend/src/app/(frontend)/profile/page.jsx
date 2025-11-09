@@ -74,7 +74,7 @@ export default function Profile() {
       const res = await fetch(
         `http://127.0.0.1:8000/api/user/update/${user.id}`,
         {
-        method: "POST",
+          method: "POST",
           headers: {
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
@@ -94,6 +94,7 @@ export default function Profile() {
         if (data.user.avatar) {
           setAvatarPreview(`http://127.0.0.1:8000/storage/${data.user.avatar}`);
         }
+         window.dispatchEvent(new Event("ProfileUpdated"));
       } else {
         alert(data.message || "Failed to update profile");
       }
@@ -118,6 +119,7 @@ export default function Profile() {
           method: "POST",
           headers: {
             Accept: "application/json",
+            "Content-Type": "application/json", 
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
@@ -132,6 +134,7 @@ export default function Profile() {
         alert("Password changed successfully!");
         setOldPassword("");
         setNewPassword("");
+        window.dispatchEvent(new Event("ProfileUpdated"));
       } else {
         alert(data.message || "Failed to change password");
       }
@@ -147,23 +150,28 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <p className="text-gray-600 text-lg">Loading profile...</p>
+        <p className="text-gray-600 text-lg">Loading...</p>
       </div>
     );
   }
-
 
   return (
     <div className="px-5 py-32 lg:py-36 max-w-6xl mx-auto">
       {/* Avatar + Nama */}
       <div className="flex flex-col items-center mb-12">
         <div className="relative w-32 h-32 lg:w-40 lg:h-40 mb-4">
-          <Image
-            src={avatarPreview}
-            alt="Profile Picture"
-            fill
-            className="rounded-full object-cover border-4 border-white shadow-md"
-          />
+          {avatarPreview && avatarPreview !== "/avatar.png" ? (
+            <Image
+              src={avatarPreview}
+              alt="Profile Picture"
+              fill
+              className="rounded-full object-cover border-4 border-white shadow-md"
+            />
+          ) : (
+            <div className="flex items-center justify-center w-full h-full rounded-full bg-[#E67E22] text-white font-bold text-5xl border-4 border-white shadow-md select-none">
+              {name ? name.charAt(0).toUpperCase() : "?"}
+            </div>
+          )}
         </div>
         <h2 className="text-2xl lg:text-3xl font-bold">{name}</h2>
         <p className="text-gray-500 text-sm lg:text-base">{email}</p>
@@ -182,13 +190,21 @@ export default function Profile() {
                   Picture
                 </label>
                 <div className="flex items-center space-x-3">
-                  <Image
-                    src={avatarPreview}
-                    className="rounded-full object-cover"
-                    alt="Current Avatar"
-                    width={48}
-                    height={48}
-                  />
+                  <div className="relative w-20 h-15 rounded-full overflow-hidden">
+                    {avatarPreview && avatarPreview !== "/avatar.png" ? (
+                      <Image
+                        src={avatarPreview}
+                        alt="Profile Picture"
+                        fill
+                        className="object-cover border-4 border-white shadow-md rounded-full"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full rounded-full bg-[#E67E22] text-white  text-xl border-4 border-white shadow-md select-none">
+                        {name ? name.charAt(0).toUpperCase() : "?"}
+                      </div>
+                    )}
+                  </div>
+
                   <input
                     type="file"
                     onChange={handleAvatarChange}
@@ -252,7 +268,7 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setShowOldPassword(!showOldPassword)}
-                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700">
+                  className="absolute right-3 top-10 text-gray-500 hover:text-gray-700">
                   {showOldPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
@@ -271,7 +287,7 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700">
+                  className="absolute right-3 top-10 text-gray-500 hover:text-gray-700">
                   {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>

@@ -41,10 +41,16 @@ export default function Header() {
         if (mounted) setUser(null);
       }
     };
+
+    const handleProfileUpdate = () => { fetchUser(); };
+
     fetchUser();
+    window.addEventListener("ProfileUpdated", handleProfileUpdate);
     return () => {
-      mounted = false;
-    };
+        mounted = false;
+        window.removeEventListener("ProfileUpdated", handleProfileUpdate);
+      };
+
   }, []);
 
   useEffect(() => setOpen(false), [pathname]);
