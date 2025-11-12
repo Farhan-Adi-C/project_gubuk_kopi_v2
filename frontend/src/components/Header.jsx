@@ -7,6 +7,7 @@ import { getAuthToken } from "@/lib/get-token-user";
 import { FaClipboardList } from "react-icons/fa";
 import Image from "next/image";
 import Swal from "sweetalert2";
+import { FaUser, FaSignOutAlt } from "react-icons/fa";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -239,14 +240,20 @@ const handleLogout = async () => {
                 <div className="absolute right-0  w-40 bg-white border rounded-lg shadow-md opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-opacity">
                   <Link
                     href="/profile"
-                    className="block px-4 py-2 hover:bg-gray-100">
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                  >
+                    <FaUser className="text-gray-600" />
                     Profile
                   </Link>
+
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100">
+                    className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100"
+                  >
+                    <FaSignOutAlt className="text-gray-600" />
                     Logout
                   </button>
+
                 </div>
               </div>
             ) : (
@@ -324,19 +331,27 @@ const handleLogout = async () => {
             <Link
               href="/historyOrder"
               onClick={() => setOpen(false)}
-              className={`px-5 py-3 hover:bg-gray-100 ${
+              className={`px-5 py-3 flex items-center gap-2 hover:bg-gray-100 ${
                 pathname === "/historyOrder"
                   ? "text-[#E67E22]"
                   : "text-gray-700"
               }`}>
+              <FaClipboardList className="w-5 h-5" />
               Riwayat Pesanan
             </Link>
           )}
           <Link
             href="/cart"
             onClick={() => setOpen(false)}
-            className="flex items-center justify-between px-5 py-3 hover:bg-gray-100">
-            <span>Keranjang</span>
+            className={`flex items-center justify-between px-5 py-3 hover:bg-gray-100 ${
+                pathname === "/cart"
+                  ? "text-[#E67E22]"
+                  : "text-gray-700"
+              }`}>
+              <div className="flex gap-2 items-center">
+                <FaShoppingCart className="text-xl" />
+                <span>Keranjang</span>
+              </div>
             <span className="bg-[#E67E22] text-white text-xs font-bold px-2 py-0.5 rounded-full">
               2
             </span>
@@ -347,12 +362,18 @@ const handleLogout = async () => {
               <Link
                 href="/profile"
                 onClick={() => setOpen(false)}
-                className="px-5 py-3 hover:bg-gray-100">
+                className={`px-5 py-3 hover:bg-gray-100 flex items-center gap-2 ${
+                pathname === "/profile"
+                  ? "text-[#E67E22]"
+                  : "text-gray-700"
+              }`}>
+                <FaUser/>
                 Profil
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-left px-5 py-3 hover:bg-gray-100 w-full">
+                className="text-left px-5 py-3 hover:bg-gray-100 w-full flex items-center gap-2">
+                  <FaSignOutAlt className="text-gray-600" />
                 Logout
               </button>
             </>

@@ -51,8 +51,8 @@ export default async function Blog() {
                   })}
                 </p>
                 <h4 className="font-semibold text-base mb-1">{post.title}</h4>
-                <p className="text-sm text-gray-600 mb-3 line-clamp-3">
-                  {post.content.slice(0, 100)}...
+               <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                  {post.content.replace(/<[^>]+>/g, '').slice(0, 100)}...
                 </p>
                 <Link
                   href={`/blog/${post.slug}`}
