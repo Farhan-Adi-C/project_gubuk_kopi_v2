@@ -72,6 +72,8 @@ export default function RegisterForm() {
         router.push("/");
       }, 1500);
 
+    window.dispatchEvent(new Event("ProfileUpdated"));
+
     } catch (err) {
       // 🔹 SweetAlert2 error
       Swal.fire({

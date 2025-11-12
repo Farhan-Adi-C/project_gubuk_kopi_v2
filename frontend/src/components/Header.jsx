@@ -118,8 +118,7 @@ const handleLogout = async () => {
     });
 
     // hapus token di cookie
-    document.cookie =
-      "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "token=; Path=/; Max-Age=0; SameSite=Strict; Secure";
 
     setUser(null);
     setOpen(false);
@@ -132,7 +131,7 @@ const handleLogout = async () => {
       showConfirmButton: false,
     });
 
-    router.push("/login");
+    window.location.href = "/login";
   } catch (error) {
     console.error("Logout error:", error);
     Swal.fire({

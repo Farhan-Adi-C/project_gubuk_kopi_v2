@@ -26,7 +26,7 @@ export default function Home() {
           <div className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-[#E2A22A] to-[#E67E22] hover:from-[#E67E22] hover:to-[#E2A22A] transition-all duration-300 text-white/90 font-medium text-sm px-4 py-2 rounded-full mb-4 shadow-sm border border-[#E2A22A]/20 backdrop-blur-sm">
             <FaLeaf className="text-white/90" />
             <span className="font-semibold">Kopi Asli Nusantara</span>
-            <span className="text-white/80">— Sejak 1980</span>
+            <span className="text-white/80">— Sejak 2015</span>
           </div>
           <h1
             className={`${bitter.className} text-3xl font-bold md:text-5xl mb-6 leading-snug`}>

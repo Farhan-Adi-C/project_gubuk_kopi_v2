@@ -72,6 +72,8 @@ const handleLogin = async (e) => {
         router.push("/");
       }
     }, 1500);
+
+    window.dispatchEvent(new Event("ProfileUpdated"));
   } catch (err) {
     console.error(err);
     Swal.fire({
