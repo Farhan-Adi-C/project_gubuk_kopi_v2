@@ -1,53 +1,91 @@
+"use client";
 import Image from "next/image";
 import Header from "@/components/Header";
 import { Bitter } from "next/font/google";
 import Footer from "@/components/Footer";
 import { FaArrowRight, FaCartShopping, FaLeaf } from "react-icons/fa6";
 import { GiCoffeeBeans } from "react-icons/gi";
-import { FaCoffee,FaSmile,FaTag } from "react-icons/fa";
+import { FaCoffee, FaSmile, FaTag } from "react-icons/fa";
 import { BiArrowFromRight } from "react-icons/bi";
 import ListMenuHome from "@/components/list-menu-home";
 import Link from "next/link";
 import FormContact from "@/components/form-contact";
 
+import AOS from "aos";
+import "aos/dist/aos.css";
+import { useEffect } from "react";
+
+
 const bitter = Bitter({
   subsets: ["latin"],
-  weight: ["400", "500", "700"], // sesuaikan kebutuhan
-  variable: "--font-bitter", // optional, kalau mau pakai CSS variable
+  weight: ["400", "500", "700"], 
+  variable: "--font-bitter", 
 });
 
 export default function Home() {
+
+    useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: false,
+    });
+  }, []);
+
   return (
     <div className="bg-white min-h-screen flex flex-col">
       {/* Hero Section */}
       <main className="flex flex-col lg:flex-row items-center flex-grow px-4 md:px-16 lg:px-32 gap-10 pt-28 lg:h-screen lg:items-center">
         {/* Left Side */}
-        <div className="w-full lg:w-1/2 text-left">
-          <div className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-[#E2A22A] to-[#E67E22] hover:from-[#E67E22] hover:to-[#E2A22A] transition-all duration-300 text-white/90 font-medium text-sm px-4 py-2 rounded-full mb-4 shadow-sm border border-[#E2A22A]/20 backdrop-blur-sm">
+        <div
+          className="w-full lg:w-1/2 text-left"
+          data-aos="fade-up"
+          data-aos-delay="200">
+          <div
+            className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-[#E2A22A] to-[#E67E22] hover:from-[#E67E22] hover:to-[#E2A22A] transition-all duration-300 text-white/90 font-medium text-sm px-4 py-2 rounded-full mb-4 shadow-sm border border-[#E2A22A]/20 backdrop-blur-sm"
+            data-aos="zoom-in"
+            data-aos-delay="100">
             <FaLeaf className="text-white/90" />
             <span className="font-semibold">Kopi Asli Nusantara</span>
             <span className="text-white/80">— Sejak 2015</span>
           </div>
+
           <h1
-            className={`${bitter.className} text-3xl font-bold md:text-5xl mb-6 leading-snug`}>
+            className={`${bitter.className} text-3xl font-bold md:text-5xl mb-6 leading-snug`}
+            data-aos="fade-right"
+            data-aos-delay="300">
             Rasakan Hangatnya Kopi Nusantara di Tengah Desa
           </h1>
-          <p className="text-gray-700 mb-6 text-base md:text-lg">
+
+          <p
+            className="text-gray-700 mb-6 text-base md:text-lg"
+            data-aos="fade-right"
+            data-aos-delay="400">
             Kopi lokal pilihan, diseduh penuh cinta, menemani obrolan hangat
             dari pagi hingga malam dengan aroma Nusantara yang memikat.
           </p>
-          <div className="flex flex-col md:flex-row gap-3">
-            <Link href={'/menu'} className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 w-full md:w-auto flex items-center justify-center">
+
+          <div
+            className="flex flex-col md:flex-row gap-3"
+            data-aos="fade-up"
+            data-aos-delay="500">
+            <Link
+              href={"/menu"}
+              className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 w-full md:w-auto flex items-center justify-center">
               Beli Sekarang
             </Link>
-            <a href="#contact" className="bg-transparent border-2 border-[#E2A22A] text-black px-6 py-3 rounded-lg hover:bg-[#d28f12] hover:text-white transition-colors duration-200 w-full md:w-auto flex items-center justify-center">
+            <a
+              href="#contact"
+              className="bg-transparent border-2 border-[#E2A22A] text-black px-6 py-3 rounded-lg hover:bg-[#d28f12] hover:text-white transition-colors duration-200 w-full md:w-auto flex items-center justify-center">
               Kontak Kami
             </a>
           </div>
         </div>
 
         {/* Right Side (Image + Rating Box) */}
-        <div className="relative w-full lg:w-1/2 min-h-[350px] sm:min-h-[350px] md:min-h-[500px]">
+        <div
+          className="relative w-full lg:w-1/2 min-h-[350px] sm:min-h-[350px] md:min-h-[500px]"
+          data-aos="fade-left"
+          data-aos-delay="200">
           <Image
             src="/hero-image.jpg"
             alt="Hero Image"
@@ -77,22 +115,35 @@ export default function Home() {
         </div>
       </main>
       {/* Section kenapa kami? */}
-      <section className="bg-[#FAF7F2] border-t border-gray-300 py-12 text-center px-4 md:px-6 mt-10 lg:mt-0">
+      <section
+        className="bg-[#FAF7F2] border-t border-gray-300 py-12 text-center px-4 md:px-6 mt-10 lg:mt-0"
+        data-aos="fade-up">
         <h2
-          className={`${bitter.className} text-2xl md:text-4xl font-bold mb-4`}>
+          className={`${bitter.className} text-2xl md:text-4xl font-bold mb-4`}
+          data-aos="fade-down"
+          data-aos-delay="100">
           Kenapa Memilih Gubuk Kopi?
         </h2>
-        <p className="text-gray-700 max-w-2xl mx-auto mb-10">
+
+        <p
+          className="text-gray-700 max-w-2xl mx-auto mb-10"
+          data-aos="fade-up"
+          data-aos-delay="200">
           Karena kami menyajikan kopi terbaik dari berbagai daerah di Indonesia,
           diseduh dengan teknik tradisional dan modern untuk pengalaman rasa
           yang autentik.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          data-aos="fade-up"
+          data-aos-delay="300">
           {/* Card 1 */}
           <div
             className="bg-white p-6 rounded-lg border border-slate-300 shadow-sm flex flex-col items-center 
-                    transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+      transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+            data-aos="zoom-in"
+            data-aos-delay="400">
             <div className="bg-[#E2A22A] rounded-full w-16 h-16 flex items-center justify-center mb-4">
               <FaCoffee className="w-8 h-8 text-white" />
             </div>
@@ -106,7 +157,9 @@ export default function Home() {
           {/* Card 2 */}
           <div
             className="bg-white p-6 rounded-lg border border-slate-300 shadow-sm flex flex-col items-center 
-                    transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+      transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+            data-aos="zoom-in"
+            data-aos-delay="500">
             <div className="bg-[#E2A22A] rounded-full w-16 h-16 flex items-center justify-center mb-4">
               <GiCoffeeBeans className="w-8 h-8 text-white" />
             </div>
@@ -120,9 +173,11 @@ export default function Home() {
           {/* Card 3 */}
           <div
             className="bg-white p-6 rounded-lg border border-slate-300 shadow-sm flex flex-col items-center 
-                    transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+      transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+            data-aos="zoom-in"
+            data-aos-delay="600">
             <div className="bg-[#E2A22A] rounded-full w-16 h-16 flex items-center justify-center mb-4">
-             <FaSmile className="w-8 h-8 text-white" />
+              <FaSmile className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Pelayanan Ramah</h3>
             <p className="text-gray-700 text-center">
@@ -134,7 +189,9 @@ export default function Home() {
           {/* Card 4 */}
           <div
             className="bg-white p-6 rounded-lg border border-slate-300 shadow-sm flex flex-col items-center 
-                    transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+      transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+            data-aos="zoom-in"
+            data-aos-delay="700">
             <div className="bg-[#E2A22A] rounded-full w-16 h-16 flex items-center justify-center mb-4">
               <FaTag className="w-8 h-8 text-white" />
             </div>
@@ -148,14 +205,23 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="py-10 px-4 md:px-16 lg:px-32 bg-white flex flex-col lg:flex-row-reverse items-center gap-8 md:gap-10 lg:min-h-screen">
+      <section
+        className="py-10 px-4 md:px-16 lg:px-32 bg-white flex flex-col lg:flex-row-reverse items-center gap-8 md:gap-10 lg:min-h-screen"
+        data-aos="fade-up">
         {/* Teks */}
-        <div className="w-full lg:w-1/2 text-left">
+        <div
+          className="w-full lg:w-1/2 text-left"
+          data-aos="fade-right"
+          data-aos-delay="200">
           <h2
             className={`${bitter.className} text-[#E2A22A] text-2xl md:text-3xl lg:text-4xl font-bold mb-4`}>
             Tentang GubukKopi
           </h2>
-          <p className="text-gray-700 mb-4 text-base md:text-lg leading-relaxed">
+
+          <p
+            className="text-gray-700 mb-4 text-base md:text-lg leading-relaxed"
+            data-aos="fade-right"
+            data-aos-delay="300">
             Gubuk Kopi hadir dari semangat melestarikan kekayaan rasa Nusantara.
             Kami memilih biji kopi terbaik dari berbagai daerah, meraciknya
             dengan teknik seduh yang menjaga aroma, rasa, dan kehangatan setiap
@@ -165,14 +231,21 @@ export default function Home() {
             membawa Anda menjelajahi kekayaan rasa Indonesia dalam suasana gubuk
             yang hangat dan bersahaja.
           </p>
-          <button className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200">
+
+          <button
+            className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 flex items-center gap-2"
+            data-aos="zoom-in"
+            data-aos-delay="400">
             Pelajari Lebih Lanjut
-            <FaArrowRight className="inline ml-2" />
+            <FaArrowRight className="inline" />
           </button>
         </div>
 
-        {/* Image */}
-        <div className="relative w-full lg:w-1/2 min-h-[350px] sm:min-h-[350px] md:min-h-[500px] mt-6 lg:mt-0">
+        {/* Gambar */}
+        <div
+          className="relative w-full lg:w-1/2 min-h-[350px] sm:min-h-[350px] md:min-h-[500px] mt-6 lg:mt-0"
+          data-aos="fade-left"
+          data-aos-delay="250">
           <Image
             src="/about.webp"
             alt="Hero Image"
@@ -181,8 +254,11 @@ export default function Home() {
             className="object-cover rounded-lg shadow-lg"
           />
 
-          {/* Variant Box */}
-          <div className="absolute -top-10 right-2 bg-white text-black border-1 border-black px-4 py-2 rounded-lg w-40 flex flex-col items-center justify-center shadow-md">
+          {/* Kotak 30+ Variant */}
+          <div
+            className="absolute -top-10 right-2 bg-white text-black border border-[#E2A22A]/30 px-4 py-2 rounded-lg w-40 flex flex-col items-center justify-center shadow-md"
+            data-aos="zoom-in"
+            data-aos-delay="600">
             <div className="flex items-center gap-1">
               <p className="text-md text-[#E2A22A] font-bold text-3xl">30+</p>
             </div>
@@ -193,39 +269,69 @@ export default function Home() {
         </div>
       </section>
 
-      
-    <section className="py-10 px-4 md:px-16 lg:px-32 bg-white flex flex-col items-center">
+      <section
+        className="py-10 px-4 md:px-16 lg:px-32 bg-white flex flex-col items-center"
+        data-aos="fade-up">
         <h2
-          className={`${bitter.className} text-[#E2A22A] text-2xl md:text-4xl font-bold mb`}>
+          className={`${bitter.className} text-[#E2A22A] text-2xl md:text-4xl font-bold mb-2`}
+          data-aos="fade-down"
+          data-aos-delay="100">
           Menu Best Seller
         </h2>
-        <h3 className="text-gray-700 mb-8 text-base md:text-lg max-w-2xl text-center">
+
+        <h3
+          className="text-gray-700 mb-8 text-base md:text-lg max-w-2xl text-center"
+          data-aos="fade-up"
+          data-aos-delay="200">
           Pilihan favorit pelanggan setia kami
         </h3>
-          {/* see all button */}
-        <div className="w-full flex justify-end">
-          <Link href={'/menu'} className="text-[#E2A22A] font-semibold mb-6 flex items-center gap-1 hover:underline">See all menu</Link>
+
+        {/* see all button */}
+        <div
+          className="w-full flex justify-end"
+          data-aos="fade-left"
+          data-aos-delay="300">
+          <Link
+            href={"/menu"}
+            className="text-[#E2A22A] font-semibold mb-6 flex items-center gap-1 hover:underline">
+            See all menu
+          </Link>
         </div>
+
         {/* list card */}
-        <ListMenuHome />
+        <div data-aos="zoom-in" data-aos-delay="400" className="w-full">
+          <ListMenuHome />
+        </div>
       </section>
 
       {/* Contact Section */}
-      <section className="bg-white border-t border-gray-300 py-12 px-4 md:px-6 mt-10 lg:mt-0" id="contact">
+      <section
+        className="bg-white border-t border-gray-300 py-12 px-4 md:px-6 mt-10 lg:mt-0"
+        id="contact">
         <h2
-          className={` ${bitter.className} text-[#E2A22A] text-2xl md:text-4xl font-bold mb-4 text-center`}>
+          data-aos="fade-up"
+          className={`${bitter.className} text-[#E2A22A] text-2xl md:text-4xl font-bold mb-4 text-center`}>
           Hubungi Kami
         </h2>
-        <p className="text-gray-700 max-w-2xl mx-auto mb-10 text-center">
+
+        <p
+          data-aos="fade-up"
+          data-aos-delay="200"
+          className="text-gray-700 max-w-2xl mx-auto mb-10 text-center">
           Tinggalkan pesan atau datang langsung ke gubug kami, kami senang
           mendengar cerita Anda.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto"
+          data-aos="fade-up"
+          data-aos-delay="300">
           {/* Info Kontak */}
           <div className="flex flex-col gap-4">
             {/* Lokasi */}
-            <div className="flex items-center gap-4 bg-white shadow-lg rounded-lg px-5 py-4">
+            <div
+              data-aos="fade-right"
+              className="flex items-center gap-4 bg-white shadow-lg rounded-lg px-5 py-4">
               <div className="bg-[#D9D9D9]/40 rounded-lg w-[80px] h-[80px] flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -233,7 +339,7 @@ export default function Home() {
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="size-6 w-9 h-9 text-black">
+                  className="w-9 h-9 text-black">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -247,12 +353,15 @@ export default function Home() {
                 </svg>
               </div>
               <p className="text-gray-700 text-lg font-medium">
-                Dukuh,Sidomukti,Kota Salatiga,
+                Dukuh, Sidomukti, Kota Salatiga
               </p>
             </div>
 
             {/* Telepon */}
-            <div className="flex items-center gap-4 bg-white shadow-lg rounded-lg px-5 py-4">
+            <div
+              data-aos="fade-right"
+              data-aos-delay="200"
+              className="flex items-center gap-4 bg-white shadow-lg rounded-lg px-5 py-4">
               <div className="bg-[#D9D9D9]/40 rounded-lg w-[80px] h-[80px] flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -275,7 +384,10 @@ export default function Home() {
           </div>
 
           {/* Form Kontak */}
-          <div className="bg-transparent border border-gray-400 rounded-lg p-6">
+          <div
+            data-aos="fade-left"
+            data-aos-delay="400"
+            className="bg-transparent border border-gray-400 rounded-lg p-6">
             <FormContact />
           </div>
         </div>

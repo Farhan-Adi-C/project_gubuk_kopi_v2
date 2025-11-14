@@ -34,6 +34,7 @@ export default function RootLayout({ children }) {
           href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css"
           rel="stylesheet"
         />
+          <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
         {/* jQuery (dibutuhkan Summernote) */}
         <script
           src="https://code.jquery.com/jquery-3.7.1.min.js"
