@@ -46,7 +46,7 @@ export default function Home() {
             data-aos-delay="100">
             <FaLeaf className="text-white/90" />
             <span className="font-semibold">Kopi Asli Nusantara</span>
-            <span className="text-white/80">— Sejak 2015</span>
+            <span className="text-white/80">— Sejak 2019</span>
           </div>
 
           <h1
@@ -247,7 +247,7 @@ export default function Home() {
           data-aos="fade-left"
           data-aos-delay="250">
           <Image
-            src="/about.webp"
+            src="/about.jpg"
             alt="Hero Image"
             fill
             priority

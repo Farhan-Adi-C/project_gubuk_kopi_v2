@@ -8,6 +8,7 @@ import { FaClipboardList } from "react-icons/fa";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
+import { FaUserShield } from "react-icons/fa6";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -246,6 +247,18 @@ const handleLogout = async () => {
                     Profile
                   </Link>
 
+                  {
+                    user.is_admin === 1 && (
+                  <Link
+                    href="/admin/dashboard"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                  >
+                    <FaUserShield className="text-gray-600" />
+                    Admin
+                  </Link>
+                    )
+                  }
+
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100"
@@ -370,6 +383,19 @@ const handleLogout = async () => {
                 <FaUser/>
                 Profil
               </Link>
+              {user.is_admin === 1 && (
+              <Link
+                href="/admin/dashboard"
+                onClick={() => setOpen(false)}
+                className={`px-5 py-3 hover:bg-gray-100 flex items-center gap-2 ${
+                pathname === "/admin/dashboard"
+                  ? "text-[#E67E22]"
+                  : "text-gray-700"
+              }`}>
+                <FaUserShield/>
+                Admin
+              </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="text-left px-5 py-3 hover:bg-gray-100 w-full flex items-center gap-2">
