@@ -232,13 +232,16 @@ export default function Home() {
             yang hangat dan bersahaja.
           </p>
 
-          <button
-            className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 flex items-center gap-2"
-            data-aos="zoom-in"
-            data-aos-delay="400">
-            Pelajari Lebih Lanjut
-            <FaArrowRight className="inline" />
-          </button>
+         <Link
+          href="/about"
+          className="bg-[#E2A22A] text-white px-6 py-3 rounded-lg hover:bg-[#d28f12] transition-colors duration-200 flex items-center gap-2 w-fit"
+          data-aos="zoom-in"
+          data-aos-delay="400"
+        >
+          Pelajari Lebih Lanjut
+          <FaArrowRight className="inline" />
+        </Link>
+
         </div>
 
         {/* Gambar */}
