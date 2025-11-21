@@ -4,8 +4,8 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
 import { BarChartType } from "@/components/bar-chart-type"
 
-export default function DashboardPage() {
-  return (
+export default function DashboardPage() {;
+  return ( 
     <>
       <SectionCards />
         {/* Dua BarChartType sejajar */}
