@@ -8,6 +8,7 @@ import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash } from "reac
 import { TbShoppingCartX } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import { FaStore, FaShoppingBag, FaMotorcycle } from "react-icons/fa";
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -17,6 +18,7 @@ const bitter = Bitter({
 
 // API function untuk get cart
 async function getCart() {
+
   try {
     const token = await getAuthToken();
 
@@ -155,6 +157,7 @@ export default function Cart() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState("");
   const snapScriptLoaded = useRef(false);
+  const [orderMethod, setOrderMethod] = useState("delivery");
 
    const router = useRouter();
 
@@ -722,23 +725,82 @@ const handleDeleteItem = async (cartId, itemName = "item ini") => {
 
             {/* Order Summary */}
             <div className="lg:w-1/2 flex flex-col gap-6">
-              {/* Address */}
-              <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
-                <label className="block mb-2 font-medium">
-                  Alamat Pengiriman *
-                </label>
-                <textarea
-                  placeholder="Contoh: Jl. Merdeka No. 123, Jakarta Pusat"
-                  className="w-full border rounded-md p-3 focus:outline-[#E67E22]"
-                  rows={3}
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  required
-                ></textarea>
-                <p className="text-sm text-gray-500 mt-1">
-                  * Wajib diisi untuk proses pengiriman
-                </p>
+            {/* Order Method */}
+              <div className="bg-[#ffffff] rounded-xl shadow-xl p-5 border border-gray-200">
+                <h3 className="font-bold mb-3 text-lg">Metode Pemesanan</h3>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { key: "dine_in", label: "Dine In", icon: <FaStore size={22} /> },
+                    { key: "take_away", label: "Take Away", icon: <FaShoppingBag size={22} /> },
+                    { key: "delivery", label: "Delivery", icon: <FaMotorcycle size={22} /> },
+                  ].map((m) => (
+                    <button
+                      key={m.key}
+                      onClick={() => setOrderMethod(m.key)}
+                      className={`
+                        flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl border font-medium transition-all
+                        ${
+                          orderMethod === m.key
+                            ? "bg-gradient-to-br from-[#E67E22] to-[#d96a17] text-white border-[#E67E22] shadow-md scale-[1.03]"
+                            : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100 hover:shadow"
+                        }
+                      `}
+                    >
+                      <div
+                        className={`
+                          p-2 rounded-full border transition-all
+                          ${
+                            orderMethod === m.key
+                              ? "bg-white text-[#E67E22] border-white"
+                              : "border-gray-300 text-gray-600"
+                          }
+                        `}
+                      >
+                        {m.icon}
+                      </div>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Info sesuai metode */}
+                <div className="mt-4 text-sm text-gray-600">
+                  {orderMethod === "dine_in" && (
+                    <p>Silahkan datang dan menikmati kopi di kedai.</p>
+                  )}
+                  {orderMethod === "take_away" && (
+                    <p>Pesanan akan dibuat dan bisa kamu ambil langsung.</p>
+                  )}
+                  {orderMethod === "delivery" && (
+                    <p>Pesananmu akan dikirim ke alamat tujuan.</p>
+                  )}
+                </div>
               </div>
+
+
+              {/* Address */}
+              {
+                orderMethod === "delivery" && (
+                    <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
+                      <label className="block mb-2 font-medium">
+                        Alamat Pengiriman *
+                      </label>
+                      <textarea
+                        placeholder="Contoh: Jl. Merdeka No. 123, Jakarta Pusat"
+                        className="w-full border rounded-md p-3 focus:outline-[#E67E22]"
+                        rows={3}
+                        value={shippingAddress}
+                        onChange={(e) => setShippingAddress(e.target.value)}
+                        required
+                      ></textarea>
+                      <p className="text-sm text-gray-500 mt-1">
+                        * Wajib diisi untuk proses pengiriman
+                      </p>
+                    </div>
+                )
+              }
+
 
               {/* Summary */}
               <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
@@ -747,6 +809,8 @@ const handleDeleteItem = async (cartId, itemName = "item ini") => {
                   <span>Subtotal ({totalItems} items)</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
+                {
+                  orderMethod === "delivery" && (
                 <div className="flex justify-between mb-2">
                   <span>Biaya Pengiriman</span>
                   <span>
@@ -757,6 +821,8 @@ const handleDeleteItem = async (cartId, itemName = "item ini") => {
                     )}
                   </span>
                 </div>
+                  )
+                }
                 <hr className="my-3 text-[#000000]/20" />
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
@@ -766,7 +832,11 @@ const handleDeleteItem = async (cartId, itemName = "item ini") => {
                 {/* Checkout Buttons */}
                 <button 
                   onClick={handleCheckout}
-                  disabled={checkoutLoading || !shippingAddress.trim() || cart.some(item => getAvailableStock(item) === 0)}
+                  disabled={
+                    (orderMethod === "delivery" && !shippingAddress.trim()) ||
+                    cart.some(item => getAvailableStock(item) === 0) ||
+                    checkoutLoading
+                  }
                   className="w-full mt-5 bg-[#E67E22] text-white py-3 rounded-lg hover:bg-[#cf6d13] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
                 >
                   {checkoutLoading ? (
@@ -788,7 +858,9 @@ const handleDeleteItem = async (cartId, itemName = "item ini") => {
                 >
                   Kembali Belanja
                 </Link>
-                <div className="flex flex-col mt-4 bg-[#FFF4E5] text-[#E67E22] rounded-lg p-4 gap-1 text-sm">
+                {
+                  orderMethod === "delivery" && (
+                                    <div className="flex flex-col mt-4 bg-[#FFF4E5] text-[#E67E22] rounded-lg p-4 gap-1 text-sm">
                   <div className="flex items-center mb-1">
                     <FaTruck className="inline mr-2 text-lg" />
                     <p className="text-black font-semibold">Gratis ongkir </p>
@@ -799,6 +871,9 @@ const handleDeleteItem = async (cartId, itemName = "item ini") => {
                     </p>
                   </div>
                 </div>
+
+                  )
+                }
               </div>
             </div>
           </>
