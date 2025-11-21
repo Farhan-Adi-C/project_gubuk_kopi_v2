@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Http;
 
 class OrderController extends Controller
 {
@@ -122,6 +123,14 @@ class OrderController extends Controller
             // CART TETAP STATUS PENDING (tidak diubah di sini)
 
             $order->load(['items.product', 'items.variant']);
+            
+            try {
+                Http::post(env('SOCKET_SERVER_URL') . '/broadcast-order', [
+                    'order' => $order
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Failed to send order to socket: ".$e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
