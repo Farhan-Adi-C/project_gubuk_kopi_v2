@@ -1,12 +1,15 @@
 // app/layout.jsx
+"use client";
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import useOrderSocket from "@/hooks/useOrderSocket"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
 export default function LayoutDashboard({ children }) {
+  useOrderSocket();
   return (
     <SidebarProvider
       style={{

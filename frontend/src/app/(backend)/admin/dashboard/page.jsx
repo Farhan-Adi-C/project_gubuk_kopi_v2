@@ -1,13 +1,10 @@
 // app/page.jsx
-"use client";
 import { SectionCards } from "@/components/section-cards"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
 import { BarChartType } from "@/components/bar-chart-type"
-import useOrderSocket from "@/hooks/useOrderSocket"
 
-export default function DashboardPage() {
-  useOrderSocket();
+export default function DashboardPage() {;
   return ( 
     <>
       <SectionCards />

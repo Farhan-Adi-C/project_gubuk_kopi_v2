@@ -124,13 +124,13 @@ class OrderController extends Controller
 
             $order->load(['items.product', 'items.variant']);
             
-            try {
-                Http::post(env('SOCKET_SERVER_URL') . '/broadcast-order', [
-                    'order' => $order
-                ]);
-            } catch (\Exception $e) {
-                Log::error("Failed to send order to socket: ".$e->getMessage());
-            }
+            // try {
+            //     Http::post(env('SOCKET_SERVER_URL') . '/broadcast-order', [
+            //         'order' => $order
+            //     ]);
+            // } catch (\Exception $e) {
+            //     Log::error("Failed to send order to socket: ".$e->getMessage());
+            // }
 
             return response()->json([
                 'success' => true,
@@ -272,6 +272,13 @@ class OrderController extends Controller
         DB::transaction(function () use ($order) {
             // Update order status to paid
             $order->update(['payment_status' => 'paid']);
+            try {
+                Http::post(env('SOCKET_SERVER_URL') . '/broadcast-order', [
+                    'order' => $order
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Failed to send order to socket: ".$e->getMessage());
+            }
 
             // Update cart status to checked_out
             Cart::where('user_id', $order->user_id)
