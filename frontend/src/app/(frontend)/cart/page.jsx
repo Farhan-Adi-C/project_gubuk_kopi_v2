@@ -4,7 +4,7 @@ import { Bitter } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash } from "react-icons/fa6";
+import { FaCreditCard, FaTruck, FaSpinner, FaPlus, FaMinus, FaTrash, FaMoneyBill1Wave } from "react-icons/fa6";
 import { TbShoppingCartX } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
@@ -158,6 +158,7 @@ export default function Cart() {
   const [shippingAddress, setShippingAddress] = useState("");
   const snapScriptLoaded = useRef(false);
   const [orderMethod, setOrderMethod] = useState("delivery");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
 
    const router = useRouter();
 
@@ -777,6 +778,47 @@ const handleDeleteItem = async (cartId, itemName = "item ini") => {
                   )}
                 </div>
               </div>
+
+                {/* */}
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <div
+                onClick={() => setPaymentMethod("cash")}
+                className={`
+                  p-4 rounded-xl cursor-pointer border flex items-center gap-3 transition-all
+                  shadow-sm hover:shadow-lg active:scale-95
+                  ${
+                    paymentMethod === "cash"
+                      ? "bg-[#E67E22] text-white border-[#E67E22]"
+                      : "bg-white border-gray-300 text-gray-700"
+                  }
+                `}
+              >
+                <FaMoneyBill1Wave className="text-xl" />
+                <div>
+                  <p className="font-semibold">Cash</p>
+                  <p className="text-xs opacity-80">Bayar langsung</p>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setPaymentMethod("transfer")}
+                className={`
+                  p-4 rounded-xl cursor-pointer border flex items-center gap-3 transition-all
+                  shadow-sm hover:shadow-lg active:scale-95
+                  ${
+                    paymentMethod === "transfer"
+                      ? "bg-[#2980B9] text-white border-[#2980B9]"
+                      : "bg-white border-gray-300 text-gray-700"
+                  }
+                `}
+              >
+                <FaCreditCard className="text-xl" />
+                <div>
+                  <p className="font-semibold">Transfer Bank</p>
+                  <p className="text-xs opacity-80">Bayar via bank atau e-wallet</p>
+                </div>
+              </div>
+            </div>
 
 
               {/* Address */}
