@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getAuthToken } from "@/lib/get-token-user";
-import { FiShoppingBag } from "react-icons/fi";
+import { FiShoppingBag, FiArrowRight } from "react-icons/fi"; // Menambahkan FiArrowRight
 
 export default function HistoryOrder() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // StatusBadge component tetap sama
   const StatusBadge = ({ status }) => {
     const map = {
       paid: { color: "bg-green-100 text-green-700", text: "Selesai" },
@@ -19,7 +20,8 @@ export default function HistoryOrder() {
     const cfg = map[status] || map.pending;
     return (
       <span
-        className={`px-3 py-1 text-xs rounded-full font-medium ${cfg.color}`}>
+        className={`px-3 py-1 text-xs rounded-full font-medium ${cfg.color}`}
+      >
         {cfg.text}
       </span>
     );
@@ -29,6 +31,7 @@ export default function HistoryOrder() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        
         const token = await getAuthToken();
         const res = await fetch("http://127.0.0.1:8000/api/orders/history", {
           headers: {
@@ -36,7 +39,6 @@ export default function HistoryOrder() {
             Accept: "application/json",
           },
         });
-
         const data = await res.json();
         if (data.success) {
           setOrders(data.data);
@@ -92,7 +94,8 @@ export default function HistoryOrder() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-gray-900 text-lg">
@@ -127,10 +130,20 @@ export default function HistoryOrder() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-start mt-4">
-                  <span className="font-semibold text-gray-900">
+                {/* Total dan Tombol Detail */}
+                <div className="flex items-center justify-between mt-4 border-t border-gray-100 pt-4">
+                  <span className="font-bold text-gray-900 text-lg">
                     Total: Rp {order.total_amount.toLocaleString("id-ID")}
                   </span>
+                  
+                  {/* Tombol Lihat Detail */}
+                  <a 
+                    href={`/order-detail/${order.order_id}`} 
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#E2A22A] border border-[#E2A22A] px-4 py-2 rounded-lg hover:bg-[#E2A22A] hover:text-white transition duration-200"
+                  >
+                    Lihat Detail
+                    <FiArrowRight size={14} />
+                  </a>
                 </div>
               </div>
             ))}
