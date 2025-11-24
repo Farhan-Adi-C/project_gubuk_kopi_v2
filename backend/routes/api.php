@@ -4,10 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\MejaController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\ContactMessageController;
 
 Route::get('/products', [ProductController::class, 'index']);
@@ -42,12 +43,18 @@ Route::prefix('blogs')->group(function (){
         Route::delete('/remove/{cartId}', [CartController::class, 'removeFromCart']);
     });
 
-    Route::post('/checkout', [OrderController::class, 'checkout'])->middleware('auth:sanctum');
-    Route::get('/orders/history', [OrderController::class, 'getOrderHistory'])->middleware('auth:sanctum');
-    Route::get('/orders/allhistory', [OrderController::class, 'getAllOrderHistory'])->middleware('auth:sanctum');
-    Route::get('/order/history/{order_id}', [OrderController::class, 'getHistoryOrderByOrderId'])->middleware('auth:sanctum');
-    Route::post('/webhook/midtrans', [OrderController::class, 'handleWebhook']);
-
+Route::post('/checkout', [OrderController::class, 'checkout'])->middleware('auth:sanctum');
+Route::post('/orders/{orderId}/confirm-cash', [OrderController::class, 'confirmCashPayment'])->middleware('auth:sanctum');
+Route::put('/orders/{orderId}/payment-status', [OrderController::class, 'updatePaymentStatus'])->middleware('auth:sanctum'); // ✅ Update payment status
+Route::put('/orders/{orderId}/order-status', [OrderController::class, 'updateOrderStatus'])->middleware('auth:sanctum'); // ✅ Update order status
+Route::get('/orders/{orderId}/timeline', [OrderController::class, 'getOrderTimeline'])->middleware('auth:sanctum'); // ✅ Get timeline
+Route::get('/orders/history', [OrderController::class, 'getOrderHistory'])->middleware('auth:sanctum');
+Route::get('/orders/allhistory', [OrderController::class, 'getAllOrderHistory'])->middleware('auth:sanctum');
+Route::get('/order/history/{order_id}', [OrderController::class, 'getHistoryOrderByOrderId'])->middleware('auth:sanctum');
+Route::delete('/orders/{orderId}', [OrderController::class, 'deleteOrder'])->middleware('auth:sanctum'); // ✅ Delete order by user
+Route::delete('/admin/orders/{orderId}', [OrderController::class, 'adminDeleteOrder'])->middleware('auth:sanctum'); 
+// Tambahkan route webhook untuk Midtrans
+Route::post('/webhook/midtrans', [OrderController::class, 'handleWebhook']);
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -61,3 +68,14 @@ Route::get('/user', [UserController::class, 'getAllUser'])->name('getAllUser')->
 
 Route::post('/send/message',[ContactMessageController::class,'sendMessage']);
 Route::get('/get/message',[ContactMessageController::class,'getMessage'])->middleware('auth:sanctum');
+
+Route::prefix('mejas')->group(function () {
+    Route::get('/', [MejaController::class, 'index']);
+    Route::post('/', [MejaController::class, 'store']);
+    Route::get('/available', [MejaController::class, 'available']);
+    Route::get('/reserved', [MejaController::class, 'reserved']);
+    Route::get('/{id}', [MejaController::class, 'show']);
+    Route::put('/{id}', [MejaController::class, 'update']);
+    Route::patch('/{id}', [MejaController::class, 'update']);
+    Route::delete('/{id}', [MejaController::class, 'destroy']);
+});

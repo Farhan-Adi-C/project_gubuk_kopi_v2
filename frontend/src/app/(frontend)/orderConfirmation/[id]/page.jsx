@@ -2,16 +2,18 @@
 import { getAuthToken } from "@/lib/get-token-user";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 
 export default function OrderConfirmation({ params }) {
   const [order, setOrder] = useState(null);
-  const resolvedParams = use(params);
-  const { id } = resolvedParams;
-  const router = useRouter()
   const [loading, setLoading] = useState(true);
+  const [redirected, setRedirected] = useState(false);
+  const router = useRouter();
+  
+  // Unwrap params menggunakan use()
+  const unwrappedParams = use(params);
+  const orderId = unwrappedParams.id;
 
-  // SVG Icons sebagai komponen
   const CheckIcon = ({ className = "w-16 h-16" }) => (
     <svg
       className={className}
@@ -84,12 +86,20 @@ export default function OrderConfirmation({ params }) {
     </svg>
   );
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchOrder = async () => {
+      if (redirected || !orderId) return;
+
       const token = await getAuthToken();
+      if (!token) {
+        setRedirected(true);
+        router.replace("/");
+        return;
+      }
+
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/order/history/${id}`,
+          `http://127.0.0.1:8000/api/order/history/${orderId}`,
           {
             method: "GET",
             headers: {
@@ -100,24 +110,42 @@ export default function OrderConfirmation({ params }) {
           }
         );
 
+        // Check if response is ok
+        if (!res.ok) {
+          console.error(`HTTP error! status: ${res.status}`);
+          setRedirected(true);
+          router.replace("/");
+          return;
+        }
+
         const data = await res.json();
+        console.log("Order data received:", data);
 
-        // Jika tidak berhasil ambil data, langsung arahkan ke beranda
-        if (!data.success || !data.data.length) {
-          return router.replace("/");
+        // PERBAIKAN: data.data adalah object langsung, bukan array
+        if (!data.success || !data.data) {
+          console.error("No order data found");
+          setRedirected(true);
+          router.replace("/");
+          return;
         }
 
-        const orderData = data.data[0];
+        const orderData = data.data;
+        console.log("Order status:", orderData.payment_status);
 
-        // Jika payment belum paid, langsung redirect sebelum render apapun
-        if (orderData.payment_status !== "paid") {
-          return router.replace("/");
+        // Allow both "paid" and "pending" status for Midtrans payments
+        // Juga allow untuk cash payment yang langsung paid
+        if (orderData.payment_status !== "paid" && orderData.payment_status !== "pending") {
+          console.error("Payment not completed:", orderData.payment_status);
+          setRedirected(true);
+          router.replace("/");
+          return;
         }
 
-        // Kalau sudah paid, baru simpan dan tampilkan UI
+        // If we get here, the order is valid
         setOrder(orderData);
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Error fetching order:", error);
+        setRedirected(true);
         router.replace("/");
       } finally {
         setLoading(false);
@@ -125,26 +153,26 @@ export default function OrderConfirmation({ params }) {
     };
 
     fetchOrder();
-  }, [id, router]);
+  }, [orderId, router, redirected]);
 
-
-if (!order) {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="flex flex-col items-center">
-        <div className="w-12 h-12 border-4 border-[#E2A22A] border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-600 font-medium">Loading your order...</p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-[#E2A22A] border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading your order...</p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-
+  if (!order) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen  bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-lg mx-auto bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-        {/* Header dengan ikon centang */}
         <div className="bg-[#E2A22A] py-8 px-4 text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-white rounded-full p-3 shadow-lg">
@@ -152,57 +180,69 @@ if (!order) {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-white">
-            Thank you for ordering!
+            {order.payment_status === "paid" 
+              ? "Thank you for ordering!" 
+              : "Order Received!"}
           </h1>
         </div>
 
-        {/* Konten utama */}
         <div className="p-6">
-          {/* Ilustrasi shopping bag */}
           <div className="flex justify-center mb-6">
             <ShoppingBag />
           </div>
 
-          {/* Teks utama */}
           <div className="text-center mb-8">
             <p className="text-gray-700 mb-4 text-lg">
-              Makasih udah belanja di sini!
+              {order.payment_status === "paid" 
+                ? "Makasih udah belanja di sini!"
+                : "Pesanan kamu sudah diterima!"}
             </p>
             <p className="text-gray-700 text-lg">
-              Pesanan kamu lagi kami siapin, tunggu konfirmasi berikutnya ya.
+              {order.payment_status === "paid"
+                ? "Pesanan kamu lagi kami siapin, tunggu konfirmasi berikutnya ya."
+                : "Silakan selesaikan pembayaran untuk memproses pesanan kamu."}
             </p>
           </div>
 
-          {/* Info order tambahan */}
           <div className="bg-[#FFF6E5] rounded-lg p-4 mb-6 border border-[#F5D48B]">
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-600 text-sm">Order Number:</span>
-              <span className="font-semibold text-[#C88C20]">#{id}</span>
+              <span className="font-semibold text-[#C88C20]">#{order.order_id}</span>
             </div>
             <div className="flex justify-between items-center mb-3">
               <span className="text-gray-600 text-sm">Order Date:</span>
               <span className="font-semibold">
-                <p>
-                  {new Date(order.created_at).toLocaleString("id-ID", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}
-                </p>
+                {new Date(order.created_at).toLocaleString("id-ID", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-sm">Status:</span>
+              <span className={`font-semibold ${
+                order.payment_status === "paid" ? "text-green-600" : "text-orange-600"
+              }`}>
+                {order.payment_status === "paid" ? "Paid" : "Pending Payment"}
               </span>
             </div>
           </div>
 
-          {/* Tombol-tombol aksi */}
           <div className="space-y-4">
-            <Link href={"/historyOrder"} className="w-full bg-[#E2A22A] hover:bg-[#C88C20] text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center shadow-md hover:shadow-lg">
+            <Link 
+              href={"/historyOrder"} 
+              className="w-full bg-[#E2A22A] hover:bg-[#C88C20] text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center shadow-md hover:shadow-lg"
+            >
               <DocumentIcon />
               <span className="ml-2">VIEW ORDER</span>
             </Link>
-            <Link href={"/menu"} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center border border-gray-300">
+            <Link 
+              href={"/menu"} 
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center border border-gray-300"
+            >
               <CartIcon />
               <span className="ml-2">CONTINUE SHOPPING</span>
             </Link>

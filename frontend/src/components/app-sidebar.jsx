@@ -13,6 +13,8 @@ import {
   IconInnerShadowTop,
   IconBook,
   IconMail,
+  IconGrid4x4,
+  IconClipboard
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -51,6 +53,16 @@ const data = {
       title: "Categories",
       url: "/admin/categories",
       icon: IconTags,
+    },
+    {
+      title: "Meja",
+      url: "/admin/mejas",
+      icon: IconGrid4x4,
+    },
+    {
+      title: "Orders",
+      url: "/admin/orders",
+      icon: IconClipboard ,
     },
     {
       title: "Blogs",

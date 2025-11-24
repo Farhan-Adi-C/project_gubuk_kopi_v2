@@ -14,6 +14,11 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
+     public function meja()
+    {
+        return $this->belongsTo(Meja::class);
+    }
+
     /**
      * Relasi ke OrderItems (jika kamu buat tabel order_items nanti)
      */
@@ -31,4 +36,8 @@ class Order extends Model
     {
         return $query->where('payment_status', 'paid');
     }
+
+     protected $casts = [
+        'status_timestamps' => 'array',
+    ];
 }
