@@ -258,3 +258,72 @@ export async function getMessage() {
   }
 }
 
+export async function getUser() {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("User belum login. Token tidak ditemukan.");
+    }
+
+    const res = await fetch("http://localhost:8000/api/users", {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+    console.log("Get user response data:", data);
+
+    if (!res.ok) {
+      throw new Error(data.message || `Gagal mengambil data user (${res.status})`);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Get user error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteUser(id) {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("User belum login. Token tidak ditemukan.");
+  }
+
+  try {
+    const res = await fetch(
+      `http://localhost:8000/api/user/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("Delete response status:", res.status);
+    console.log("Delete response ok:", res.ok);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Delete error response:", errorText);
+      throw new Error(
+        `Gagal menghapus user: ${res.status} ${res.statusText}`
+      );
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Delete error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+
