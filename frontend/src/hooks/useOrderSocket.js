@@ -8,7 +8,6 @@ export default function useOrderSocket() {
     const socket = io("http://localhost:4000");
 
     socket.on("order_created", (order) => {
-      console.log("Order baru masuk:", order);
 
       // pakai SweetAlert
       Swal.fire({
@@ -17,7 +16,7 @@ export default function useOrderSocket() {
         position: "top-end",
         icon: "success",
         showConfirmButton: false,
-        timer: 3000,
+        timer: 11000,
       });
     });
 
