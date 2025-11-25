@@ -53,11 +53,14 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth:sanctum');
 Route::middleware('auth:sanctum')->get('/userislogin', [AuthController::class, 'userIsLogin']);
+Route::get('/users', [UserController::class, 'getAllUser'])->name('getAllUser')->middleware('auth:sanctum');
+Route::post('/user/create', [UserController::class, 'createUser'])->name('createUser')->middleware('auth:sanctum');
+Route::get('/user/edit/{id}', [UserController::class, 'edit'])->name('editUser');
 Route::post('/user/update/{id}', [UserController::class, 'update'])->name('updateUser')->middleware('auth:sanctum');
+Route::delete('/user/{id}', [UserController::class, 'delete'])->name('deleteUser')->middleware('auth:sanctum');
 
 Route::get('auth', [AuthController::class, 'redirectToAuth']);
 Route::get('auth/callback', [AuthController::class, 'handleAuthCallback']);
-Route::get('/user', [UserController::class, 'getAllUser'])->name('getAllUser')->middleware('auth:sanctum');
 
 Route::post('/send/message',[ContactMessageController::class,'sendMessage']);
 Route::get('/get/message',[ContactMessageController::class,'getMessage'])->middleware('auth:sanctum');

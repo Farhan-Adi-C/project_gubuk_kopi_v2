@@ -62,6 +62,11 @@ const data = {
       url: "/admin/message",
       icon: IconMail,
     },
+    {
+      title: "Users",
+      url: "/admin/users",
+      icon: IconUsers,
+    },
   ],
   
   documents: [
