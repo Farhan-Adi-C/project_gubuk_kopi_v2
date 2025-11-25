@@ -289,9 +289,10 @@ export default function OrderDetail() {
               </div>
             </div>
 
-            <p className="text-5xl font-extrabold mb-6 text-orange-700 tracking-tight">
-              Rp {order.total_amount.toLocaleString("id-ID")}
-            </p>
+           <p className="text-5xl font-extrabold mb-6 text-amber-600 tracking-tight">
+            Rp {order.total_amount.toLocaleString("id-ID")}
+          </p>
+
 
             {/* STATUS & METHOD INFO */}
             <div className="flex flex-col gap-4">
@@ -377,7 +378,7 @@ export default function OrderDetail() {
             <div className="border-t border-gray-200 pt-4 mt-4">
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-gray-800 text-lg">Total</span>
-                <span className="font-bold text-orange-700 text-xl">
+                <span className="font-bold text-amber-600 tracking-tight text-xl">
                   Rp {order.total_amount.toLocaleString("id-ID")}
                 </span>
               </div>
