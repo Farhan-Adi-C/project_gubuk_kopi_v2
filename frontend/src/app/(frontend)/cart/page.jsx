@@ -4,7 +4,7 @@ import { Bitter } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { FaCreditCard, FaTruck, FaSpinner, FaTrash, FaMoneyBill1Wave, FaClock, FaTable, FaStore, FaMotorcycle } from "react-icons/fa6";
+import { FaCreditCard, FaTruck, FaSpinner, FaTrash, FaMoneyBill1Wave, FaClock, FaTable, FaStore, FaMotorcycle, FaMapPin } from "react-icons/fa6";
 import { TbShoppingCartX } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
@@ -134,7 +134,6 @@ export default function Cart() {
   const [updatingItems, setUpdatingItems] = useState(new Set());
   const [deletingItems, setDeletingItems] = useState(new Set());
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState("");
   const [selectedMeja, setSelectedMeja] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [availableMejas, setAvailableMejas] = useState([]);
@@ -142,8 +141,23 @@ export default function Cart() {
   const snapScriptLoaded = useRef(false);
   const [orderMethod, setOrderMethod] = useState("dinein");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  
+  const [userLocation, setUserLocation] = useState(null);
+  const [selectedAddress, setSelectedAddress] = useState("");
+  const [distance, setDistance] = useState(0);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapInitialized, setMapInitialized] = useState(false);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const leafletLoaded = useRef(false);
 
   const router = useRouter();
+
+  const UMKM_LOCATION = {
+    lat: -7.322728176064783,
+    lng:  110.48619758870001
+  };
 
   useEffect(() => {
     if (!snapScriptLoaded.current) {
@@ -166,9 +180,181 @@ export default function Cart() {
     fetchCartData();
   }, []);
 
+  // Load Leaflet sekali saja ketika komponen mount
   useEffect(() => {
-    if (orderMethod === "dinein") fetchAvailableMejas();
+    if (leafletLoaded.current) return;
+
+    const loadLeaflet = async () => {
+      // Load CSS
+      if (!document.querySelector('link[href*="leaflet"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      // Load JS
+      if (!window.L) {
+        return new Promise((resolve) => {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js';
+          script.async = true;
+          script.onload = () => {
+            leafletLoaded.current = true;
+            resolve();
+          };
+          script.onerror = () => {
+            console.error('Failed to load Leaflet');
+            resolve();
+          };
+          document.head.appendChild(script);
+        });
+      } else {
+        leafletLoaded.current = true;
+      }
+    };
+
+    loadLeaflet();
+  }, []);
+
+   useEffect(() => {
+    if (orderMethod === "dinein" && availableMejas.length === 0) {
+      fetchAvailableMejas();
+    }
   }, [orderMethod]);
+
+  // Initialize map ketika order method berubah ke delivery
+  useEffect(() => {
+    if (orderMethod === "delivery" && leafletLoaded.current && !mapInitialized) {
+      initializeMap();
+    }
+  }, [orderMethod, mapInitialized]);
+
+  const initializeMap = () => {
+    if (!mapRef.current) {
+      console.log('Map container not ready');
+      return;
+    }
+
+    if (!window.L) {
+      console.log('Leaflet not loaded yet');
+      return;
+    }
+
+    setMapLoading(true);
+
+    try {
+      // Cleanup previous map instance
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+
+      // Initialize map
+      mapInstanceRef.current = window.L.map(mapRef.current, {
+        zoomControl: true,
+        scrollWheelZoom: true
+      }).setView([UMKM_LOCATION.lat, UMKM_LOCATION.lng], 13);
+
+      // Add tile layer
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+      }).addTo(mapInstanceRef.current);
+
+      // Add UMKM marker
+      window.L.marker([UMKM_LOCATION.lat, UMKM_LOCATION.lng])
+        .addTo(mapInstanceRef.current)
+        .bindPopup('Lokasi UMKM Kami')
+        .openPopup();
+
+      // Add click event
+      mapInstanceRef.current.on('click', handleMapClick);
+
+      // Force resize after a delay
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
+
+      setMapInitialized(true);
+      setMapLoading(false);
+
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapLoading(false);
+    }
+  };
+
+  const handleMapClick = async (e) => {
+    const { lat, lng } = e.latlng;
+    setUserLocation({ lat, lng });
+    
+    if (markerRef.current) {
+      mapInstanceRef.current.removeLayer(markerRef.current);
+    }
+    
+    markerRef.current = window.L.marker([lat, lng])
+      .addTo(mapInstanceRef.current)
+      .bindPopup('Lokasi Pengiriman')
+      .openPopup();
+
+    const calculatedDistance = calculateDistance(lat, lng);
+    setDistance(calculatedDistance);
+    
+    await getAddressFromCoordinates(lat, lng);
+  };
+
+  const calculateDistance = (lat, lng) => {
+    const R = 6371;
+    const dLat = (lat - UMKM_LOCATION.lat) * Math.PI / 180;
+    const dLng = (lng - UMKM_LOCATION.lng) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(UMKM_LOCATION.lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return parseFloat(distance.toFixed(2));
+  };
+
+  const getAddressFromCoordinates = async (lat, lng) => {
+    try {
+      setSelectedAddress("Mengambil alamat...");
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Gagal mengambil alamat');
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.display_name) {
+        setSelectedAddress(data.display_name);
+      } else {
+        setSelectedAddress("Alamat tidak ditemukan");
+      }
+    } catch (error) {
+      console.error('Error fetching address:', error);
+      setSelectedAddress("Gagal mengambil alamat");
+    }
+  };
+
+  const calculateDeliveryCost = () => {
+    const COST_PER_KM = 5000;
+    const baseCost = 10000;
+    
+    if (distance <= 0) return 0;
+    
+    let deliveryCost = baseCost + (distance * COST_PER_KM);
+    
+  
+    
+    return Math.round(deliveryCost);
+  };
 
   const fetchCartData = async () => {
     try {
@@ -322,9 +508,15 @@ export default function Cart() {
       return false;
     }
 
-    if (orderMethod === "delivery" && !shippingAddress.trim()) {
-      alert("Mohon masukkan alamat pengiriman");
-      return false;
+    if (orderMethod === "delivery") {
+      if (!userLocation) {
+        alert("Mohon pilih lokasi pengiriman pada peta");
+        return false;
+      }
+      if (!selectedAddress || selectedAddress === "Silakan pilih lokasi pada peta") {
+        alert("Mohon tunggu hingga alamat selesai dimuat");
+        return false;
+      }
     }
     
     if (orderMethod === "dinein" && !selectedMeja) {
@@ -343,7 +535,6 @@ export default function Cart() {
   const handleCheckout = async () => {
   if (!validateForm()) return;
 
-  // Periksa apakah Snap sudah loaded
   if (paymentMethod === "midtrans" && !window.snap) {
     alert("Sistem pembayaran sedang loading, silakan tunggu sebentar dan coba lagi");
     return;
@@ -357,9 +548,14 @@ export default function Cart() {
       payment_method: paymentMethod
     };
 
-    if (orderMethod === "delivery") orderData.shipping_address = shippingAddress;
-    else if (orderMethod === "dinein") orderData.meja_id = parseInt(selectedMeja);
-    else if (orderMethod === "takeaway") orderData.pickup_time = pickupTime;
+    if (orderMethod === "delivery") {
+      orderData.shipping_address = selectedAddress;
+      orderData.shipping_cost = shipping;
+    } else if (orderMethod === "dinein") {
+      orderData.meja_id = parseInt(selectedMeja);
+    } else if (orderMethod === "takeaway") {
+      orderData.pickup_time = pickupTime;
+    }
 
     const result = await checkout(orderData);
     
@@ -368,7 +564,6 @@ export default function Cart() {
         const snapToken = result.data.data.snap_token;
         if (!snapToken) throw new Error("Snap token tidak ditemukan");
 
-        // Pastikan window.snap tersedia
         if (!window.snap) {
           throw new Error("Payment gateway belum siap, silakan refresh halaman");
         }
@@ -380,7 +575,7 @@ export default function Cart() {
           },
           onPending: function(result) {
             console.log('Payment pending:', result);
-            router.push(`/orderConfirmation/${result.order_id}`);
+            router.push(`/order-detail/${result.order_id}`);
           },
           onError: function(result) {
             console.log('Payment error:', result);
@@ -408,10 +603,13 @@ export default function Cart() {
     alert("Pesanan berhasil dibuat! Pesanan Anda sedang diproses.");
     setCart([]);
     window.dispatchEvent(new Event("cartUpdated"));
-    setShippingAddress("");
     setSelectedMeja("");
     setPickupTime("");
-    router.push(`/orderConfirmation/${orderId}`);
+    setUserLocation(null);
+    setSelectedAddress("");
+    setDistance(0);
+    setMapInitialized(false);
+    router.push(`/order-detail/${orderId}`);
   };
 
   const formatPrice = (price) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
@@ -425,13 +623,9 @@ export default function Cart() {
   };
 
   const subtotal = cart.reduce((acc, item) => acc + (calculatePricePerItem(item) * item.quantity), 0);
-  let shipping = orderMethod === "delivery" ? 10000 : 0;
-  let total = subtotal + shipping;
-
-  if (orderMethod === "delivery" && subtotal >= 100000) {
-    shipping = 0;
-    total = subtotal;
-  }
+  
+  const shipping = orderMethod === "delivery" ? calculateDeliveryCost() : 0;
+  const total = subtotal + shipping;
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -463,6 +657,15 @@ export default function Cart() {
   };
 
   const timeOptions = generateTimeOptions();
+
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -596,18 +799,45 @@ export default function Cart() {
               </div>
 
               {orderMethod === "dinein" && (
-                <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
-                  <label className="block mb-2 font-medium flex items-center gap-2"><FaTable className="text-[#E67E22]" />Pilih Meja *</label>
-                  {loadingMejas ? (
-                    <div className="flex items-center gap-2 text-gray-500"><FaSpinner className="animate-spin" /><p>Memuat meja tersedia...</p></div>
-                  ) : availableMejas.length > 0 ? (
-                    <select value={selectedMeja} onChange={(e) => setSelectedMeja(e.target.value)} className="w-full border rounded-md p-3 focus:outline-[#E67E22] bg-white" required>
-                      <option value="">Pilih Meja</option>
-                      {availableMejas.map((meja) => <option key={meja.id} value={meja.id}>Meja {meja.table_number} - Kapasitas: {meja.capacity} orang</option>)}
-                    </select>
-                  ) : <p className="text-red-500">Tidak ada meja tersedia saat ini</p>}
-                </div>
-              )}
+  <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
+    <label className="block mb-2 font-medium flex items-center gap-2">
+      <FaTable className="text-[#E67E22]" />
+      Pilih Meja *
+    </label>
+    {loadingMejas ? (
+      <div className="flex items-center gap-2 text-gray-500">
+        <FaSpinner className="animate-spin" />
+        <p>Memuat meja tersedia...</p>
+      </div>
+    ) : availableMejas.length > 0 ? (
+      <div>
+        <select 
+          value={selectedMeja} 
+          onChange={(e) => setSelectedMeja(e.target.value)} 
+          className="w-full border rounded-md p-3 focus:outline-[#E67E22] bg-white" 
+          required
+        >
+          <option value="">Pilih Meja</option>
+          {availableMejas.map((meja) => (
+            <option key={meja.id} value={meja.id}>
+              Meja {meja.table_number} - Kapasitas: {meja.capacity} orang
+            </option>
+          ))}
+        </select>
+        <p className="text-sm text-gray-500 mt-2">
+          {availableMejas.length} meja tersedia
+        </p>
+      </div>
+    ) : (
+      <div className="text-center py-4">
+        <p className="text-red-500 mb-2">Tidak ada meja tersedia saat ini</p>
+        <p className="text-sm text-gray-500">
+          Silakan pilih metode pemesanan lain atau coba lagi nanti
+        </p>
+      </div>
+    )}
+  </div>
+)}
 
               {orderMethod === "takeaway" && (
                 <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
@@ -621,8 +851,61 @@ export default function Cart() {
 
               {orderMethod === "delivery" && (
                 <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
-                  <label className="block mb-2 font-medium">Alamat Pengiriman *</label>
-                  <textarea placeholder="Contoh: Jl. Merdeka No. 123, Jakarta Pusat" className="w-full border rounded-md p-3 focus:outline-[#E67E22]" rows={3} value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} required></textarea>
+                  <label className="block mb-2 font-medium flex items-center gap-2">
+                    <FaMapPin className="text-[#E67E22]" />
+                    Pilih Lokasi Pengiriman *
+                  </label>
+                  
+                  {mapLoading ? (
+                    <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <FaSpinner className="animate-spin" />
+                        <p>Memuat peta...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative z-0"> {/* z-0 untuk memastikan map di bawah konten lain */}
+        <div 
+          ref={mapRef} 
+          className="w-full h-64 rounded-lg border border-gray-300 mb-3 bg-gray-100 relative z-0"
+          style={{ 
+            minHeight: '256px',
+            // Force isolate stacking context
+            isolation: 'isolate'
+          }}
+        />
+      </div>
+                      
+                      <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                        <p className="text-sm text-blue-800">
+                          <strong>Petunjuk:</strong> Klik pada peta untuk memilih lokasi pengiriman Anda
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <p className="text-sm font-medium text-gray-700">Jarak Tempuh</p>
+                          <p className="text-lg font-bold text-[#E67E22]">
+                            {distance > 0 ? `${distance} km` : '-'}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <p className="text-sm font-medium text-gray-700">Biaya Pengiriman</p>
+                          <p className="text-lg font-bold text-[#E67E22]">
+                            {shipping > 0 ? formatPrice(shipping) : '-'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-yellow-50 p-3 rounded-lg">
+                        <p className="text-sm font-medium text-gray-700">Alamat Terpilih</p>
+                        <p className="text-gray-900 mt-1 text-sm">
+                          {selectedAddress || "Silakan pilih lokasi pada peta"}
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -640,21 +923,64 @@ export default function Cart() {
 
               <div className="bg-[#fdfdfd] rounded-lg shadow-lg p-4">
                 <h3 className="font-bold mb-4">Ringkasan Pesanan</h3>
-                <div className="flex justify-between mb-2"><span>Subtotal ({totalItems} items)</span><span>{formatPrice(subtotal)}</span></div>
-                {orderMethod === "delivery" && <div className="flex justify-between mb-2"><span>Biaya Pengiriman</span><span>{shipping === 0 ? <span className="text-green-600">GRATIS</span> : formatPrice(shipping)}</span></div>}
+                <div className="flex justify-between mb-2">
+                  <span>Subtotal ({totalItems} items)</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                
+                {orderMethod === "delivery" && (
+                  <div className="flex justify-between mb-2">
+                    <span>Biaya Pengiriman</span>
+                    <span>
+                      {shipping > 0 ? formatPrice(shipping) : '-'}
+                      {distance > 0 && (
+                        <span className="text-xs text-gray-500 block text-right">
+                          ({distance} km × Rp 5.000)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                
                 <hr className="my-3 text-[#000000]/20" />
-                <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{formatPrice(total)}</span></div>
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
 
-                <button onClick={handleCheckout} disabled={checkoutLoading || (orderMethod === "delivery" && !shippingAddress.trim()) || (orderMethod === "dinein" && !selectedMeja) || (orderMethod === "takeaway" && !pickupTime) || cart.some(item => getAvailableStock(item) === 0)} className="w-full mt-5 bg-[#E67E22] text-white py-3 rounded-lg hover:bg-[#cf6d13] disabled:opacity-50 transition flex items-center justify-center">
-                  {checkoutLoading ? <><FaSpinner className="animate-spin mr-2" />Memproses Pembayaran...</> : <><FaCreditCard className="inline mr-2" />Lanjut Ke Pembayaran</>}
+                <button 
+                  onClick={handleCheckout} 
+                  disabled={
+                    checkoutLoading || 
+                    (orderMethod === "delivery" && (!userLocation || !selectedAddress)) || 
+                    (orderMethod === "dinein" && !selectedMeja) || 
+                    (orderMethod === "takeaway" && !pickupTime) || 
+                    cart.some(item => getAvailableStock(item) === 0)
+                  } 
+                  className="w-full mt-5 bg-[#E67E22] text-white py-3 rounded-lg hover:bg-[#cf6d13] disabled:opacity-50 transition flex items-center justify-center"
+                >
+                  {checkoutLoading ? (
+                    <><FaSpinner className="animate-spin mr-2" />Memproses Pembayaran...</>
+                  ) : (
+                    <><FaCreditCard className="inline mr-2" />Lanjut Ke Pembayaran</>
+                  )}
                 </button>
 
-                <Link href="/menu" className="block w-full mt-3 bg-transparent text-[#E2A22A] hover:text-white border-[#E2A22A] border-2 py-3 rounded-lg hover:bg-[#cf6d13] transition text-center">Kembali Belanja</Link>
+                <Link href="/menu" className="block w-full mt-3 bg-transparent text-[#E2A22A] hover:text-white border-[#E2A22A] border-2 py-3 rounded-lg hover:bg-[#cf6d13] transition text-center">
+                  Kembali Belanja
+                </Link>
                 
                 {orderMethod === "delivery" && (
                   <div className="flex flex-col mt-4 bg-[#FFF4E5] text-[#E67E22] rounded-lg p-4 gap-1 text-sm">
-                    <div className="flex items-center mb-1"><FaTruck className="inline mr-2 text-lg" /><p className="text-black font-semibold">Gratis ongkir </p></div>
-                    <div><p className="text-[#8B4513]">Dengan Minimal Pembelian Rp 100.000 dan maksimal 5KM</p></div>
+                    <div className="flex items-center mb-1">
+                      <FaTruck className="inline mr-2 text-lg" />
+                      <p className="text-black font-semibold">Info Pengiriman</p>
+                    </div>
+                    <div>
+                      <p className="text-[#8B4513]">
+                        Biaya pengiriman dihitung berdasarkan jarak (Rp 5.000 per km) + biaya dasar Rp 10.000
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

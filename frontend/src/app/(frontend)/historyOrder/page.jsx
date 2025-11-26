@@ -15,7 +15,9 @@ import {
   FiUser,
   FiLoader,
   FiMapPin,
-  FiUserCheck
+  FiUserCheck,
+  FiDollarSign,
+  FiSmartphone
 } from "react-icons/fi";
 import Link from "next/link";
 
@@ -120,6 +122,38 @@ export default function HistoryOrder() {
     }
     
     return 'pending';
+  };
+
+  // PaymentMethodBadge component baru
+  const PaymentMethodBadge = ({ method }) => {
+    const methodMap = {
+      cash: { 
+        color: "bg-green-50 text-green-700 border border-green-200", 
+        text: "Cash",
+        icon: FiDollarSign
+      },
+      midtrans: { 
+        color: "bg-blue-50 text-blue-700 border border-blue-200", 
+        text: "Online Payment",
+        icon: FiSmartphone
+      },
+      // Tambahkan method lain jika diperlukan
+    };
+    
+    const config = methodMap[method] || { 
+      color: "bg-gray-50 text-gray-700 border border-gray-200", 
+      text: method,
+      icon: FiCreditCard
+    };
+    
+    const IconComponent = config.icon;
+    
+    return (
+      <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full font-medium ${config.color}`}>
+        <IconComponent size={12} />
+        {config.text}
+      </span>
+    );
   };
 
   // StatusBadge component dengan mapping yang lengkap termasuk delivery
@@ -401,7 +435,27 @@ export default function HistoryOrder() {
       <div className="max-w-7xl mx-auto">
         {filteredOrders.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
-            {/* Empty state sama seperti sebelumnya */}
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                <FiShoppingBag className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Belum ada pesanan
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {activeTab === "all" 
+                  ? "Anda belum memiliki riwayat pesanan" 
+                  : `Tidak ada pesanan dengan status "${tabs.find(tab => tab.id === activeTab)?.label}"`
+                }
+              </p>
+              <Link
+                href="/menu"
+                className="inline-flex items-center gap-2 bg-[#E2A22A] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d19425] transition duration-200"
+              >
+                <FiShoppingBag size={18} />
+                Pesan Sekarang
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
@@ -412,7 +466,7 @@ export default function HistoryOrder() {
               >
                 {/* Header dengan Order ID dan Status */}
                 <div className="p-4 border-b border-gray-100">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 text-lg truncate">
                         #{order.order_id}
@@ -431,6 +485,14 @@ export default function HistoryOrder() {
                     <StatusBadge order={order} />
                   </div>
 
+                  {/* Payment Method dan Order Type */}
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-2">
+                      <PaymentMethodBadge method={order.payment_method} />
+                      <OrderTypeBadge type={order.order_type} />
+                    </div>
+                  </div>
+
                   {/* Progress bar untuk delivery orders */}
                   {order.order_type === 'delivery' && order.payment_status === 'paid' && (
                     <DeliveryProgress order={order} />
@@ -440,7 +502,6 @@ export default function HistoryOrder() {
                 {/* Order Type dan Additional Info */}
                 <div className="p-4 border-b border-gray-100 space-y-3">
                   <div className="flex items-center justify-between">
-                    <OrderTypeBadge type={order.order_type} />
                     <div className="text-right">
                       <span className="font-bold text-gray-900 text-lg block">
                         Rp {order.total_amount.toLocaleString("id-ID")}
@@ -467,8 +528,11 @@ export default function HistoryOrder() {
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-sm text-gray-700 flex items-start gap-2">
                         <FiHome size={14} className="text-gray-400 mt-0.5" />
-                        <span>
-                          <span className="font-medium">Alamat:</span> {order.shipping_address}
+                        <span className="flex-1">
+                          <span className="font-medium">Alamat:</span> 
+                          <span className="block text-xs mt-1 text-gray-600 line-clamp-2">
+                            {order.shipping_address}
+                          </span>
                         </span>
                       </p>
                     </div>

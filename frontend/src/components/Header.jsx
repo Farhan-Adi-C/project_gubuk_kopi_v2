@@ -154,7 +154,7 @@ const handleLogout = async () => {
   }
 
   return (
-    <div className="fixed top-0 left-0 w-full z-50">
+    <div className="fixed top-0 left-0 w-full z-100">
       <div className="bg-white border-b border-gray-300">
         <div className="max-w-full mx-auto flex justify-between items-center px-4 lg:px-10 py-4 md:py-5">
           {/* Logo */}

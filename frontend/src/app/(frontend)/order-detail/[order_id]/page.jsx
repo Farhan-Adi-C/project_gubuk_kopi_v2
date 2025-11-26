@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { getAuthToken } from "@/lib/get-token-user";
 import {
   FaReceipt,
@@ -8,22 +8,28 @@ import {
   FaMotorcycle,
   FaBagShopping,
   FaRegCopy,
+  FaLocationPin,
+  FaFilePdf
 } from "react-icons/fa6";
 import {
   IoTimeOutline,
   IoCheckmarkCircle,
   IoCafeOutline,
   IoCheckmark,
+  IoArrowBack,
 } from "react-icons/io5";
 
 export default function OrderDetail() {
   const params = useParams();
+  const router = useRouter();
   const orderId = params.order_id;
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [payLoading, setPayLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Fetch order detail from API
   useEffect(() => {
@@ -63,6 +69,258 @@ export default function OrderDetail() {
       navigator.clipboard.writeText(order.order_id);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
+    }
+  };
+
+  // Handle payment for Midtrans orders
+  const handlePayment = async () => {
+    if (!order?.snap_token) {
+      alert('Token pembayaran tidak tersedia');
+      return;
+    }
+
+    try {
+      setPayLoading(true);
+      
+      if (!window.snap) {
+        // Load Midtrans script if not loaded
+        const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
+        const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+
+        if (!document.querySelector(`script[src="${snapScript}"]`)) {
+          const script = document.createElement('script');
+          script.src = snapScript;
+          script.setAttribute('data-client-key', clientKey);
+          script.async = true;
+          
+          script.onload = () => {
+            window.snap.pay(order.snap_token, {
+              onSuccess: function(result) {
+                console.log('Payment success:', result);
+                alert('Pembayaran berhasil!');
+                window.location.reload();
+              },
+              onPending: function(result) {
+                console.log('Payment pending:', result);
+                alert('Menunggu pembayaran...');
+                window.location.reload();
+              },
+              onError: function(result) {
+                console.log('Payment error:', result);
+                alert('Terjadi kesalahan saat proses pembayaran.');
+              },
+              onClose: function() {
+                console.log('Payment popup closed');
+                alert('Pembayaran dibatalkan.');
+              }
+            });
+          };
+          document.body.appendChild(script);
+        }
+      } else {
+        // Snap already loaded
+        window.snap.pay(order.snap_token, {
+          onSuccess: function(result) {
+            console.log('Payment success:', result);
+            alert('Pembayaran berhasil!');
+            window.location.reload();
+          },
+          onPending: function(result) {
+            console.log('Payment pending:', result);
+            alert('Menunggu pembayaran...');
+            window.location.reload();
+          },
+          onError: function(result) {
+            console.log('Payment error:', result);
+            alert('Terjadi kesalahan saat proses pembayaran.');
+          },
+          onClose: function() {
+            console.log('Payment popup closed');
+            alert('Pembayaran dibatalkan.');
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Gagal memproses pembayaran: ' + error.message);
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
+  // Export to PDF function - Manual generation tanpa html2canvas
+  const exportToPDF = async () => {
+    try {
+      setPdfLoading(true);
+      
+      const { jsPDF } = await import('jspdf');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      let yPosition = 15;
+
+      // Header
+      pdf.setFontSize(20);
+      pdf.setTextColor(234, 88, 12); // Orange color
+      pdf.text('GUBUK KOPI', pageWidth / 2, yPosition, { align: 'center' });
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 100, 100);
+      yPosition += 8;
+      pdf.text('INVOICE', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 15;
+
+      // Order Information
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      
+      // Order ID and Date
+      pdf.text(`Nomor Pesanan: ${order.order_id}`, 15, yPosition);
+      pdf.text(`Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, pageWidth - 15, yPosition, { align: 'right' });
+      
+      yPosition += 8;
+      pdf.text(`Waktu: ${new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - 15, yPosition, { align: 'right' });
+      
+      yPosition += 15;
+
+      // Order Details Box
+      pdf.setDrawColor(234, 88, 12);
+      pdf.setFillColor(255, 247, 237);
+      pdf.rect(15, yPosition, pageWidth - 30, 40, 'F');
+      pdf.rect(15, yPosition, pageWidth - 30, 40, 'S');
+      
+      const boxContentY = yPosition + 10;
+      
+      // Total Amount
+      pdf.setFontSize(16);
+      pdf.setTextColor(234, 88, 12);
+      pdf.text(`Rp ${order.total_amount.toLocaleString('id-ID')}`, 25, boxContentY);
+      
+      // Order Type
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Metode: ${getOrderTypeText(order.order_type, order.meja)}`, 25, boxContentY + 8);
+      
+      // Status
+      pdf.text(`Status: ${getStatusText(order.payment_status, order.order_status, order.order_type)}`, 25, boxContentY + 16);
+      
+      // Shipping Address if exists
+      if (order.shipping_address) {
+        pdf.text(`Alamat: ${order.shipping_address}`, 25, boxContentY + 24);
+      }
+
+      yPosition += 50;
+
+      // Items Header
+      pdf.setFontSize(12);
+      pdf.setTextColor(234, 88, 12);
+      pdf.text('DETAIL PESANAN', 15, yPosition);
+      
+      yPosition += 8;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(15, yPosition, pageWidth - 15, yPosition);
+      
+      yPosition += 10;
+
+      // Items List
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      
+      order.items.forEach((item, index) => {
+        if (yPosition > 250) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        
+        const itemName = item.product?.name || 'Produk';
+        const quantity = item.quantity;
+        const price = item.price;
+        const total = quantity * price;
+        const variant = item.variant ? ` (${item.variant.name})` : '';
+        
+        pdf.text(`${itemName}${variant}`, 20, yPosition);
+        pdf.text(`x${quantity}`, pageWidth - 60, yPosition);
+        pdf.text(`Rp ${total.toLocaleString('id-ID')}`, pageWidth - 20, yPosition, { align: 'right' });
+        
+        yPosition += 6;
+      });
+
+      yPosition += 10;
+
+      // Total Line
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(pageWidth - 80, yPosition, pageWidth - 15, yPosition);
+      yPosition += 8;
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(234, 88, 12);
+      pdf.text('TOTAL:', pageWidth - 70, yPosition);
+      pdf.text(`Rp ${order.total_amount.toLocaleString('id-ID')}`, pageWidth - 20, yPosition, { align: 'right' });
+
+      yPosition += 20;
+
+      // Timeline if available
+      if (order.order_type === "delivery" || order.payment_status === 'paid') {
+        const timeline = generateTimeline(order);
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(234, 88, 12);
+        pdf.text('STATUS PESANAN', 15, yPosition);
+        
+        yPosition += 15;
+        
+        pdf.setFontSize(9);
+        pdf.setTextColor(0, 0, 0);
+        
+        timeline.forEach((item, index) => {
+          if (yPosition > 270) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          
+          const status = item.done ? '✓' : '○';
+          pdf.text(`${status} ${item.status}`, 20, yPosition);
+          pdf.text(item.time !== "-" ? `${item.time} WIB` : "Menunggu...", pageWidth - 20, yPosition, { align: 'right' });
+          
+          yPosition += 7;
+        });
+      }
+
+      yPosition += 15;
+
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Terima kasih telah berbelanja di Gubuk Kopi', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 4;
+      pdf.text('Invoice ini sah sebagai bukti transaksi', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 4;
+      pdf.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, pageWidth / 2, yPosition, { align: 'center' });
+
+      // Save PDF
+      const fileName = `invoice-${order.order_id}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Gagal membuat PDF: ' + error.message);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  // Helper function untuk teks order type
+  const getOrderTypeText = (orderType, meja) => {
+    switch (orderType) {
+      case "dinein":
+        return meja ? `Dine-in (Meja ${meja.table_number})` : 'Dine-in';
+      case "takeaway":
+        return "Take Away";
+      case "delivery":
+        return "Delivery";
+      default:
+        return orderType;
     }
   };
 
@@ -192,6 +450,13 @@ export default function OrderDetail() {
     }
   };
 
+  // Check if payment button should be shown
+  const shouldShowPaymentButton = () => {
+    return order?.payment_method === 'midtrans' && 
+           order?.payment_status === 'pending' && 
+           order?.snap_token;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -206,6 +471,13 @@ export default function OrderDetail() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Error</h1>
           <p className="text-gray-600">{error}</p>
+          <button 
+            onClick={() => router.push('/historyOrder')}
+            className="mt-4 bg-[#E2A22A] text-white px-6 py-2 rounded-lg hover:bg-[#d18f1f] transition flex items-center gap-2 mx-auto"
+          >
+            <IoArrowBack className="w-4 h-4" />
+            Kembali ke Order History
+          </button>
         </div>
       </div>
     );
@@ -217,6 +489,13 @@ export default function OrderDetail() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Order Tidak Ditemukan</h1>
           <p className="text-gray-600">Order ID yang diminta tidak ditemukan</p>
+          <button 
+            onClick={() => router.push('/historyOrder')}
+            className="mt-4 bg-[#E2A22A] text-white px-6 py-2 rounded-lg hover:bg-[#d18f1f] transition flex items-center gap-2 mx-auto"
+          >
+            <IoArrowBack className="w-4 h-4" />
+            Kembali ke Order History
+          </button>
         </div>
       </div>
     );
@@ -227,14 +506,45 @@ export default function OrderDetail() {
 
   return (
     <div className="px-4 max-w-6xl mx-auto py-28 md:py-28 font-sans">
-      {/* TITLE */}
-      <div className="flex items-center gap-3 mb-12">
-        <FaReceipt className="text-4xl text-orange-600 drop-shadow-md" />
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-800">
-          Detail Pesanan
-        </h1>
+      {/* HEADER WITH BACK BUTTON & PDF EXPORT */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <FaReceipt className="text-4xl text-orange-600 drop-shadow-md" />
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-800">
+            Detail Pesanan
+          </h1>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={exportToPDF}
+            disabled={pdfLoading}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-50"
+          >
+            {pdfLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Membuat PDF...
+              </>
+            ) : (
+              <>
+                <FaFilePdf className="w-4 h-4" />
+                Export PDF
+              </>
+            )}
+          </button>
+          
+          <button 
+            onClick={() => router.push('/historyOrder')}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition flex items-center gap-2 border border-gray-300"
+          >
+            <IoArrowBack className="w-4 h-4" />
+            Kembali ke History
+          </button>
+        </div>
       </div>
 
+      {/* CONTENT - TANPA PERUBAHAN */}
       <div
         className={`grid grid-cols-1 gap-8 ${
           order.order_type === "delivery" ? "lg:grid-cols-3" : "lg:grid-cols-2"
@@ -326,6 +636,56 @@ export default function OrderDetail() {
                   </p>
                 </div>
               </div>
+
+              {/* SHIPPING ADDRESS - Conditional */}
+              {order.shipping_address && (
+                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-2xl border border-blue-200">
+                  <div className="p-3 bg-blue-300 rounded-xl text-blue-900">
+                    <FaLocationPin className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-700 mb-1">
+                      Alamat Pengiriman
+                    </p>
+                    <p className="text-gray-800">
+                      {order.shipping_address}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* PAYMENT BUTTON - Conditional */}
+              {shouldShowPaymentButton() && (
+                <div className="mt-4 p-4 bg-yellow-50 rounded-2xl border border-yellow-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700">
+                        Pembayaran Tertunda
+                      </p>
+                      <p className="text-yellow-700">
+                        Silakan selesaikan pembayaran untuk melanjutkan pesanan
+                      </p>
+                    </div>
+                    <button
+                      onClick={handlePayment}
+                      disabled={payLoading}
+                      className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {payLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Memuat...
+                        </>
+                      ) : (
+                        <>
+                          <FaReceipt className="w-4 h-4" />
+                          Bayar Sekarang
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

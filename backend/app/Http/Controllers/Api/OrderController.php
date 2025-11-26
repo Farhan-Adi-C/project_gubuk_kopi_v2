@@ -4,194 +4,227 @@ namespace App\Http\Controllers\Api;
 
 use Midtrans\Snap;
 use App\Models\Cart;
+use App\Models\Meja;
 use Midtrans\Config;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\OrderItem;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Carbon;
 
 class OrderController extends Controller
 {
     public function checkout(Request $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        if (!$user) {
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'User not authenticated'
+        ], 401);
+    }
+
+    $request->validate([
+        'order_type' => 'required|in:delivery,takeaway,dinein',
+        'shipping_address' => 'required_if:order_type,delivery|string|nullable',
+        'shipping_cost' => 'required_if:order_type,delivery|numeric|min:0',
+        'meja_id' => 'required_if:order_type,dinein|exists:mejas,id|nullable',
+        'pickup_time' => 'required_if:order_type,takeaway|string|nullable',
+        'payment_method' => 'required|in:midtrans,cash',
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        // Get cart items
+        $cartItems = Cart::with(['product', 'variant'])
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->get();
+
+        if ($cartItems->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'User not authenticated'
-            ], 401);
+                'message' => 'Cart is empty'
+            ], 400);
         }
 
-        $request->validate([
-            'order_type' => 'required|in:delivery,takeaway,dinein',
-            'shipping_address' => 'required_if:order_type,delivery|string|nullable',
-            'meja_id' => 'required_if:order_type,dinein|exists:mejas,id|nullable',
-            'pickup_time' => 'required_if:order_type,takeaway|string|nullable',
-            'payment_method' => 'required|in:midtrans,cash',
-        ]);
-
-        DB::beginTransaction();
-
-        try {
-            // Get cart items
-            $cartItems = Cart::with(['product', 'variant'])
-                ->where('user_id', $user->id)
-                ->where('status', 'pending')
-                ->get();
-
-            if ($cartItems->isEmpty()) {
+        // Jika order type dinein, update status meja menjadi reserved
+        if ($request->order_type === 'dinein' && $request->meja_id) {
+            $meja = Meja::find($request->meja_id);
+            
+            if (!$meja) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cart is empty'
+                    'message' => 'Meja tidak ditemukan'
+                ], 404);
+            }
+            
+            if ($meja->status !== 'available') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Meja tidak tersedia'
                 ], 400);
             }
-
-            // Calculate total amount
-            $totalAmount = 0;
-            foreach ($cartItems as $item) {
-                $discountAmount = intval($item->product->price * ($item->product->discount / 100));
-                $priceAfterDiscount = intval($item->product->price - $discountAmount);
-                $variantPrice = intval($item->variant ? $item->variant->additional_price : 0);
-                $itemPrice = intval($priceAfterDiscount + $variantPrice);
-                $totalAmount += intval($itemPrice * $item->quantity);
-            }
-
-            // Add shipping cost for delivery if total < 100000
-            if ($request->order_type === 'delivery' && $totalAmount < 100000) {
-                $totalAmount += 10000;
-            }
-
-            // Generate unique order ID
-            $orderId = 'ORDER-' . time() . '-' . rand(1000, 9999);
-
-            $orderData = [
-                'user_id' => $user->id,
-                'order_id' => $orderId,
-                'total_amount' => $totalAmount,
-                'payment_status' => 'pending',
-                'payment_method' => $request->payment_method,
-                'order_type' => $request->order_type,
-                'shipping_address' => $request->shipping_address,
-                'meja_id' => $request->meja_id,
-                'pickup_time' => $request->pickup_time,
-                'order_status' => 'pending',
-                'status_timestamps' => $this->initializeStatusTimestamps()
-            ];
-
-            $snapToken = null;
-            $paymentUrl = null;
-            $message = 'Order created successfully.';
-
-            // Handle payment based on payment method
-            if ($request->payment_method === 'midtrans') {
-                // Midtrans configuration
-                Config::$serverKey = config('midtrans.serverKey');
-                Config::$isProduction = config('midtrans.isProduction', false);
-                Config::$isSanitized = true;
-                Config::$is3ds = true;
-
-                $params = [
-                    'transaction_details' => [
-                        'order_id' => $orderId,
-                        'gross_amount' => $totalAmount,
-                    ],
-                    'customer_details' => [
-                        'first_name' => $user->name,
-                        'email' => $user->email,
-                        'phone' => $user->phone ?? '08111222333',
-                    ],
-                    'expiry' => [
-                        'start_time' => date('Y-m-d H:i:s O'),
-                        'unit' => 'hours',
-                        'duration' => 24
-                    ],
-                    'callbacks' => [
-                        'finish' => "http://localhost:3000/orderConfirmation/" . $orderId,
-                    ],
-                ];
-
-                $snapToken = Snap::getSnapToken($params);
-                $orderData['snap_token'] = $snapToken;
-                
-                $paymentUrl = 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' . $snapToken;
-                $message = 'Order created successfully. Please complete the payment.';
-
-                // **PERUBAHAN PENTING: Untuk Midtrans, JANGAN update cart status dulu**
-                // Cart akan diupdate via webhook ketika pembayaran berhasil
-
-            } else {
-                // For cash payment
-                $message = 'Order created successfully. Please pay with cash when order is ready.';
-                
-                // **PERUBAHAN PENTING: Untuk cash, langsung update cart status**
-                Cart::where('user_id', $user->id)
-                    ->where('status', 'pending')
-                    ->update(['status' => 'checked_out']);
-            }
-
-            // Create order
-            $order = Order::create($orderData);
-
-            // Create order items
-            foreach ($cartItems as $item) {
-                $discountAmount = $item->product->price * ($item->product->discount / 100);
-                $priceAfterDiscount = $item->product->price - $discountAmount;
-                $variantPrice = $item->variant ? $item->variant->additional_price : 0;
-                $itemPrice = $priceAfterDiscount + $variantPrice;
-                $subtotal = $itemPrice * $item->quantity;
-
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'variant_id' => $item->variant_id,
-                    'price' => $itemPrice,
-                    'quantity' => $item->quantity,
-                    'subtotal' => $subtotal,
-                ]);
-            }
-
-            DB::commit();
-
-            $order->load(['items.product', 'items.variant', 'meja']);
-
-            // Send socket notification for new order
-            $this->sendOrderNotification($order, 'new_order');
-
-            $response = [
-                'success' => true,
-                'message' => $message,
-                'data' => [
-                    'order' => $order,
-                    'order_id' => $order->order_id,
-                    'id' => $order->id,
-                ]
-            ];
-
-            // Add payment data only for midtrans
-            if ($request->payment_method === 'midtrans') {
-                $response['data']['snap_token'] = $snapToken;
-                $response['data']['payment_url'] = $paymentUrl;
-            }
-
-            return response()->json($response, 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Checkout error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create order',
-                'error' => $e->getMessage()
-            ], 500);
+            
+            // Update status meja menjadi reserved
+            $meja->status = 'reserved';
+            $meja->save();
         }
+
+        // Calculate total amount from cart items
+        $totalAmount = 0;
+        foreach ($cartItems as $item) {
+            $discountAmount = intval($item->product->price * ($item->product->discount / 100));
+            $priceAfterDiscount = intval($item->product->price - $discountAmount);
+            $variantPrice = intval($item->variant ? $item->variant->additional_price : 0);
+            $itemPrice = intval($priceAfterDiscount + $variantPrice);
+            $totalAmount += intval($itemPrice * $item->quantity);
+        }
+
+        // Add shipping cost for delivery (langsung tambah ke total_amount)
+        if ($request->order_type === 'delivery') {
+            $shippingCost = intval($request->shipping_cost);
+            $totalAmount += $shippingCost;
+        }
+
+        // Generate unique order ID
+        $orderId = 'ORDER-' . time() . '-' . rand(1000, 9999);
+
+        $orderData = [
+            'user_id' => $user->id,
+            'order_id' => $orderId,
+            'total_amount' => $totalAmount,
+            'payment_status' => 'pending',
+            'payment_method' => $request->payment_method,
+            'order_type' => $request->order_type,
+            'shipping_address' => $request->shipping_address,
+            'meja_id' => $request->meja_id,
+            'pickup_time' => $request->pickup_time,
+            'order_status' => 'pending',
+            'status_timestamps' => $this->initializeStatusTimestamps()
+        ];
+
+        $snapToken = null;
+        $paymentUrl = null;
+        $message = 'Order created successfully.';
+
+        // Handle payment based on payment method
+        if ($request->payment_method === 'midtrans') {
+            // Midtrans configuration
+            Config::$serverKey = config('midtrans.serverKey');
+            Config::$isProduction = config('midtrans.isProduction', false);
+            Config::$isSanitized = true;
+            Config::$is3ds = true;
+
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $orderId,
+                    'gross_amount' => $totalAmount,
+                ],
+                'customer_details' => [
+                    'first_name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '08111222333',
+                ],
+                'expiry' => [
+                    'start_time' => date('Y-m-d H:i:s O'),
+                    'unit' => 'hours',
+                    'duration' => 24
+                ],
+                'callbacks' => [
+                    'finish' => "http://localhost:3000/orderConfirmation/" . $orderId,
+                ],
+            ];
+
+            $snapToken = Snap::getSnapToken($params);
+            $orderData['snap_token'] = $snapToken;
+            
+            $paymentUrl = 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' . $snapToken;
+            $message = 'Order created successfully. Please complete the payment.';
+
+        } else {
+            // For cash payment
+            $message = 'Order created successfully. Please pay with cash when order is ready.';
+            
+            Cart::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'checked_out']);
+        }
+
+        // Create order
+        $order = Order::create($orderData);
+
+        // Create order items
+        foreach ($cartItems as $item) {
+            $discountAmount = $item->product->price * ($item->product->discount / 100);
+            $priceAfterDiscount = $item->product->price - $discountAmount;
+            $variantPrice = $item->variant ? $item->variant->additional_price : 0;
+            $itemPrice = $priceAfterDiscount + $variantPrice;
+            $subtotal = $itemPrice * $item->quantity;
+
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item->product_id,
+                'variant_id' => $item->variant_id,
+                'price' => $itemPrice,
+                'quantity' => $item->quantity,
+                'subtotal' => $subtotal,
+            ]);
+        }
+
+        DB::commit();
+
+        $order->load(['items.product', 'items.variant', 'meja']);
+
+        // Send socket notification for new order
+        $this->sendOrderNotification($order, 'new_order');
+
+        $response = [
+            'success' => true,
+            'message' => $message,
+            'data' => [
+                'order' => $order,
+                'order_id' => $order->order_id,
+                'id' => $order->id,
+            ]
+        ];
+
+        // Add payment data only for midtrans
+        if ($request->payment_method === 'midtrans') {
+            $response['data']['snap_token'] = $snapToken;
+            $response['data']['payment_url'] = $paymentUrl;
+        }
+
+        return response()->json($response, 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        // Jika error terjadi dan meja sudah direserve, kembalikan status ke available
+        if (isset($meja) && $meja->status === 'reserved') {
+            try {
+                $meja->status = 'available';
+                $meja->save();
+            } catch (\Exception $mejaError) {
+                Log::error('Failed to revert meja status: ' . $mejaError->getMessage());
+            }
+        }
+        
+        Log::error('Checkout error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create order',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function confirmCashPayment(Request $request, $orderId)
     {
